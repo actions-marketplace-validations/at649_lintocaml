@@ -17,7 +17,6 @@
   "lintml reads the typed AST produced by an OCaml build and reports correctness issues, partial API use, and avoidable traversals. Style and idiom rules are available through opt-in profiles.")
  (depends
   (ocaml (and (>= 5.2) (< 5.6)))
-  (dune (>= 3.0))
   (cppo (>= 1.8.0))
   (cmdliner (>= 1.2.0))
   (fmt (>= 0.9.0))
