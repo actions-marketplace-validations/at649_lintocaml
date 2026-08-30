@@ -14,6 +14,8 @@ profile = "default"
 # length-compare-zero = "off"
 
 # Paths are relative to this file. Later overrides win.
+# Generated code is the first thing worth turning off: a menhir parser is
+# thousands of Obj.magic calls that nobody will edit.
 # [[overrides]]
-# paths = ["vendor/**", "test/**"]
+# paths = ["vendor/**", "test/**", "**/parser.ml"]
 # profile = "off"

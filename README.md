@@ -123,9 +123,13 @@ partial-function = "hint"
 length-compare-zero = "off"
 
 [[overrides]]
-paths = ["test/**", "vendor/**"]
+paths = ["test/**", "vendor/**", "**/parser.ml"]
 profile = "off"
 ```
+
+Turn generated code off first. A menhir parser is tens of thousands of lines of
+`Obj.magic` and will bury every finding you care about; nobody is going to edit
+it anyway. The same goes for anything else a build step writes.
 
 Paths are relative to the config file, so it means the same thing wherever you
 run from. Later overrides win. An unknown rule ID is an error rather than a
