@@ -48,3 +48,12 @@ jobs:
       - run: opam install . --deps-only --with-test
       - run: opam exec -- dune build @all
       - run: opam exec -- dune runtest
+      - name: the suite must not need anything the opam builders lack
+        run: |
+          mkdir -p "$RUNNER_TEMP/mask"
+          for tool in python python3 jq perl; do
+            printf '#!/bin/sh\necho "%s: masked in this step" >&2\nexit 127\n' "$tool" \
+              > "$RUNNER_TEMP/mask/$tool"
+            chmod +x "$RUNNER_TEMP/mask/$tool"
+          done
+          PATH="$RUNNER_TEMP/mask:$PATH" opam exec -- dune runtest --force

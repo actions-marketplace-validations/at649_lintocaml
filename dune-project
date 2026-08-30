@@ -1,6 +1,6 @@
 (lang dune 3.0)
 (name lintml)
-(version 0.1.4)
+(version 0.1.5)
 (generate_opam_files true)
 
 (source (github at649/lintml))

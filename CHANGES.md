@@ -1,5 +1,10 @@
 # Changes
 
+## 0.1.5
+
+- The fixture suite no longer needs `perl`. It was used to edit one fixture,
+  and the opam builders are not guaranteed to ship it.
+
 ## 0.1.4
 
 - Corrected the sample output in the README: a run prints "0 hints across 12

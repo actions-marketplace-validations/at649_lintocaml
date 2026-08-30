@@ -256,10 +256,13 @@ fi
 STALE_PROJECT=$(mktemp -d)
 TEMP_DIRS+=("$STALE_PROJECT")
 cp -R "$ROOT/test/fixtures/fix/." "$STALE_PROJECT/"
+# dune serves the fixtures read-only, and cp preserves that.
+chmod -R u+w "$STALE_PROJECT"
 ( cd "$STALE_PROJECT" && dune build @check 2>/dev/null ) ||
   { echo "FAIL: stale fix fixture build"; exit 1; }
-perl -0pi -e 's/if true then value/if flag then value/' \
-  "$STALE_PROJECT/fix_fixture.ml"
+stale_source=$(cat "$STALE_PROJECT/fix_fixture.ml")
+printf '%s\n' "${stale_source//if true then value/if flag then value}" \
+  > "$STALE_PROJECT/fix_fixture.ml"
 "$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic \
   --fail-on never --fix "$STALE_PROJECT/_build" >/dev/null 2>/dev/null
 STALE_EXPECTED='let choose value = if flag then value else 0
