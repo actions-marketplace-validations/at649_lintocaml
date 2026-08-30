@@ -14,8 +14,7 @@ let root () = Lazy.force input
 
 let field name json =
   match json with
-  | `Assoc fields -> (
-      match List.assoc_opt name fields with Some v -> v | None -> `Null)
+  | `Assoc fields -> Option.value (List.assoc_opt name fields) ~default:`Null
   | _ -> `Null
 
 let list_of = function `List items -> items | _ -> []
@@ -33,7 +32,6 @@ let contains ~needle haystack =
   let rec scan i = i + n <= h && (String.sub haystack i n = needle || scan (i + 1)) in
   scan 0
 
-let ends_with ~suffix s = Filename.check_suffix s suffix
 let check condition message = if condition then exit 0 else die message
 
 let () =
@@ -72,7 +70,7 @@ let () =
         (List.exists
            (fun d ->
              rule_of d = rule
-             && ends_with ~suffix (string_of (field "file" d))
+             && String.ends_with ~suffix (string_of (field "file" d))
              && line_of d = line)
            (diagnostics ()))
         (Printf.sprintf "no %s in *%s at line %d" rule suffix line)
@@ -127,7 +125,7 @@ let () =
           let file = string_of (field "file" e)
           and message = string_of (field "error" e) in
           check
-            (ends_with ~suffix file && not (contains ~needle:"Cmi_format" message))
+            (String.ends_with ~suffix file && not (contains ~needle:"Cmi_format" message))
             ("unhelpful load error: " ^ message)
       | _ ->
           die
