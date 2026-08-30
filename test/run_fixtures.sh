@@ -10,6 +10,11 @@ else
   LINTML="$ROOT/bin/main.exe"
 fi
 FIXTURE="$ROOT/test/fixtures/sample"
+if [ -x "$ROOT/_build/default/test/jsonq.exe" ]; then
+  JSONQ="$ROOT/_build/default/test/jsonq.exe"
+else
+  JSONQ="$ROOT/test/jsonq.exe"
+fi
 TEST_CONFIG="$ROOT/test/lintml-test.toml"
 TEMP_DIRS=()
 
@@ -28,11 +33,7 @@ OUT=$("$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic --format j
 OUT_DEFAULT=$("$LINTML" --no-color --config "$TEST_CONFIG" --profile default --format json "$FIXTURE/_build")
 fails=0
 
-if echo "$OUT" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['diagnostics']
-assert any(x['rule']=='constant-condition' and x['replacement']=='value' for x in d)
-assert any(x['replacement'] is None for x in d)"; then
+if echo "$OUT" | "$JSONQ" replacement-metadata; then
   echo "  ok       JSON distinguishes safe replacements from advice"
 else
   echo "  WRONG    JSON replacement metadata is incomplete"; fails=$((fails+1))
@@ -51,10 +52,7 @@ expect_exit() {
 }
 
 expect() {
-  if echo "$OUT" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['diagnostics']
-sys.exit(0 if any(x['rule']=='$1' and x['line']==$2 for x in d) else 1)"; then
+  if echo "$OUT" | "$JSONQ" has "$1" "$2"; then
     echo "  ok       $1 @ $2"
   else
     echo "  MISSING  $1 @ $2"; fails=$((fails+1))
@@ -62,12 +60,7 @@ sys.exit(0 if any(x['rule']=='$1' and x['line']==$2 for x in d) else 1)"; then
 }
 
 expect_clean() {
-  if echo "$OUT_DEFAULT" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['diagnostics']
-hits=[x['rule'] for x in d if x['line']==$1]
-if hits: print('   -> fired:', ', '.join(hits), file=sys.stderr)
-sys.exit(1 if hits else 0)"; then
+  if echo "$OUT_DEFAULT" | "$JSONQ" line-clean "$1"; then
     echo "  ok       $1 clean  ($2)"
   else
     echo "  FALSE+   $1 should be clean  ($2)"; fails=$((fails+1))
@@ -75,10 +68,7 @@ sys.exit(1 if hits else 0)"; then
 }
 
 expect_rule_clean() {
-  if echo "$OUT" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['diagnostics']
-sys.exit(1 if any(x['rule']=='$1' and x['line']==$2 for x in d) else 0)"; then
+  if echo "$OUT" | "$JSONQ" rule-line-clean "$1" "$2"; then
     echo "  ok       $1 @ $2 clean  ($3)"
   else
     echo "  FALSE+   $1 should be clean @ $2  ($3)"; fails=$((fails+1))
@@ -86,10 +76,7 @@ sys.exit(1 if any(x['rule']=='$1' and x['line']==$2 for x in d) else 0)"; then
 }
 
 expect_hint() {
-  if echo "$OUT" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['diagnostics']
-sys.exit(0 if any(x['line']==$1 and x['suggestion'] and '''$2''' in x['suggestion'] for x in d) else 1)"; then
+  if echo "$OUT" | "$JSONQ" suggests "$1" "$2"; then
     echo "  ok       $1 suggests '$2'"
   else
     echo "  WRONG    $1 should suggest '$2'"; fails=$((fails+1))
@@ -286,10 +273,7 @@ else
   echo "  WRONG    changed source using stale compiler locations"; fails=$((fails+1))
 fi
 
-if echo "$OUT" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['diagnostics']
-assert any(x['rule']=='disabled-all-warnings' and x['file'].endswith('sample.mli') and x['line']==1 for x in d)"; then
+if echo "$OUT" | "$JSONQ" has-in-file disabled-all-warnings sample.mli 1; then
   echo "  ok       analyses .cmti interface attributes"
 else
   echo "  MISSING  disabled-all-warnings in sample.mli"; fails=$((fails+1))
@@ -323,9 +307,7 @@ DISCOVERED=$(
   cd "$FIXTURE" &&
   "$LINTML" --no-color --profile pedantic --format json _build
 )
-if echo "$DISCOVERED" | python3 -c "
-import json,sys
-assert json.load(sys.stdin)['diagnostics']==[]"; then
+if echo "$DISCOVERED" | "$JSONQ" no-diagnostics; then
   echo "  ok       discovers config upward and applies path override"
 else
   echo "  WRONG    discovered config did not suppress fixture"; fails=$((fails+1))
@@ -335,9 +317,7 @@ EXPLICIT_RELATIVE=$(
   cd "$FIXTURE" &&
   "$LINTML" --no-color --config ./lintml.toml --profile pedantic --format json _build
 )
-if echo "$EXPLICIT_RELATIVE" | python3 -c "
-import json,sys
-assert json.load(sys.stdin)['diagnostics']==[]"; then
+if echo "$EXPLICIT_RELATIVE" | "$JSONQ" no-diagnostics; then
   echo "  ok       anchors an explicit relative config to its real directory"
 else
   echo "  WRONG    relative config path broke path overrides"; fails=$((fails+1))
@@ -347,9 +327,7 @@ DISCOVERED_FROM_ROOT=$(
   cd "${TMPDIR:-/tmp}" &&
   "$LINTML" --no-color --profile pedantic --format json "$FIXTURE/_build"
 )
-if echo "$DISCOVERED_FROM_ROOT" | python3 -c "
-import json,sys
-assert json.load(sys.stdin)['diagnostics']==[]"; then
+if echo "$DISCOVERED_FROM_ROOT" | "$JSONQ" no-diagnostics; then
   echo "  ok       discovers config from an explicit scan root"
 else
   echo "  WRONG    scan-root config discovery failed"; fails=$((fails+1))
@@ -360,11 +338,8 @@ SUPPRESSED=$(
     --report-suppressed --format json \
     "$FIXTURE/_build"
 )
-if echo "$SUPPRESSED" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['suppressed']
-assert any(x['line']==101 and x['reason']=='allocation identity is intended' for x in d)
-assert any(x['line']==114 and x['reason']=='generated module intentionally checks identity' for x in d)"; then
+if echo "$SUPPRESSED" | "$JSONQ" suppressed-reason 101 "allocation identity is intended" &&
+   echo "$SUPPRESSED" | "$JSONQ" suppressed-reason 114 "generated module intentionally checks identity"; then
   echo "  ok       reports expression and structure suppression reasons"
 else
   echo "  WRONG    suppression audit output is incomplete"; fails=$((fails+1))
@@ -386,17 +361,7 @@ SARIF=$("$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic --format
 # The expected rule count comes from the registry rather than a literal, so
 # adding a rule does not require editing this assertion.
 RULE_COUNT=$("$LINTML" list-rules --profile pedantic | grep -c .)
-if echo "$SARIF" | RULE_COUNT="$RULE_COUNT" python3 -c "
-import json,os,sys
-d=json.load(sys.stdin)
-run=d['runs'][0]
-assert d['version']=='2.1.0'
-declared={r['id'] for r in run['tool']['driver']['rules']}
-assert len(declared)==int(os.environ['RULE_COUNT']), (len(declared), os.environ['RULE_COUNT'])
-# every reported rule must carry metadata, or code scanning shows a bare id
-assert {x['ruleId'] for x in run['results']} <= declared
-assert run['results']
-assert any(x.get('fixes') for x in run['results'])"; then
+if echo "$SARIF" | "$JSONQ" sarif-structure "$RULE_COUNT"; then
   echo "  ok       SARIF structure and rule metadata"
 else
   echo "  WRONG    invalid SARIF output"; fails=$((fails+1))
@@ -407,16 +372,7 @@ SARIF_SUPPRESSED=$(
     --report-suppressed --format sarif \
     "$FIXTURE/_build"
 )
-if echo "$SARIF_SUPPRESSED" | python3 -c "
-import json,sys
-results=json.load(sys.stdin)['runs'][0]['results']
-suppressed=[x for x in results if x.get('suppressions')]
-# The count is not asserted: engine-injected suppressions (a handled
-# exception, a guarded empty-list arm) legitimately change it. What must hold
-# is that each one is in-source and carries a reason.
-assert suppressed
-assert all(x['suppressions'][0]['kind']=='inSource' for x in suppressed)
-assert all(x['suppressions'][0].get('justification') for x in suppressed)"; then
+if echo "$SARIF_SUPPRESSED" | "$JSONQ" sarif-suppressions; then
   echo "  ok       SARIF identifies in-source suppressions"
 else
   echo "  WRONG    invalid SARIF suppression metadata"; fails=$((fails+1))
@@ -459,16 +415,7 @@ expect_rule_clean length-compare-zero 216 "exists-via-filter covers this express
 echo
 echo "rule overlap:"
 # Every reported location must be attributable to exactly one rule.
-if echo "$OUT" | python3 -c "
-import json,sys,collections
-d=json.load(sys.stdin)['diagnostics']
-by=collections.defaultdict(list)
-for x in d: by[(x['file'],x['line'],x['column'])].append(x['rule'])
-overlaps={k:v for k,v in by.items() if len(v)>1}
-if overlaps:
-    for (f,l,c),rules in sorted(overlaps.items()):
-        print(f'   -> {f}:{l}:{c}: '+', '.join(rules), file=sys.stderr)
-    sys.exit(1)"; then
+if echo "$OUT" | "$JSONQ" no-overlap; then
   echo "  ok       no two rules fire on the same location"
 else
   echo "  WRONG    overlapping rules produce duplicate findings"; fails=$((fails+1))
@@ -572,22 +519,12 @@ MIXED=$(mktemp -d)
 cp -R "$FIXTURE/_build" "$MIXED/"
 echo "not a cmt file" > "$MIXED/_build/broken.cmt"
 MIXED_OUT=$("$LINTML" --no-color --fail-on never --format json "$MIXED/_build" 2>"$MIXED/err")
-if echo "$MIXED_OUT" | python3 -c "
-import json,sys
-sys.exit(0 if len(json.load(sys.stdin)['diagnostics'])>0 else 1)"; then
+if echo "$MIXED_OUT" | "$JSONQ" has-diagnostics; then
   echo "  ok       findings survive an unreadable artifact"
 else
   echo "  WRONG    an unreadable artifact suppressed all findings"; fails=$((fails+1))
 fi
-if echo "$MIXED_OUT" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)
-errors=d['load_errors']
-assert len(errors)==1, errors
-assert errors[0]['file'].endswith('broken.cmt')
-# The message has to say something; the compiler's default rendering is
-# 'Cmi_format.Error(_)', which does not.
-assert 'Cmi_format' not in errors[0]['error'], errors[0]"; then
+if echo "$MIXED_OUT" | "$JSONQ" load-error broken.cmt; then
   echo "  ok       JSON reports the unreadable artifact readably"
 else
   echo "  WRONG    load_errors missing or unhelpful in JSON"; fails=$((fails+1))

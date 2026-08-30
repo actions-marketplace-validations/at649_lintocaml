@@ -1,5 +1,11 @@
 # Changes
 
+## 0.1.3
+
+- The fixture suite no longer shells out to `python3`. The opam builders do
+  not ship it, so every assertion there failed. The checks moved to a small
+  OCaml helper built alongside the tests.
+
 ## 0.1.2
 
 - SARIF now reports the analyser version, so code scanning can tell one

@@ -7,8 +7,17 @@
   lintml-test.toml
   ../lintml.toml.example
   ../bin/main.exe
+  jsonq.exe
   (source_tree fixtures))
  (action
   (chdir
    %{workspace_root}
    (run ./test/run_fixtures.sh))))
+
+; Answers the fixture assertions about lintml's JSON and SARIF output. It
+; exists so run_fixtures.sh needs no python3, which the opam builders lack.
+
+(executable
+ (name jsonq)
+ (modules jsonq)
+ (libraries yojson))
