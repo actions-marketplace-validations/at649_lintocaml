@@ -18,6 +18,7 @@
  (depends
   (ocaml (and (>= 5.2) (< 5.6)))
   (cppo (>= 1.8.0))
+  (dune-build-info (>= 3.0))
   (cmdliner (>= 1.2.0))
   (fmt (>= 0.9.0))
   (yojson (>= 2.0.0))

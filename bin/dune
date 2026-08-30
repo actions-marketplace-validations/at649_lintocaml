@@ -1,4 +1,11 @@
 (executable
  (name main)
  (public_name lintml)
- (libraries lintml_engine lintml_rules lintml_driver cmdliner fmt unix))
+ (libraries
+  lintml_engine
+  lintml_rules
+  lintml_driver
+  cmdliner
+  fmt
+  unix
+  dune-build-info))

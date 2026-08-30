@@ -309,9 +309,16 @@ let list_cmd =
   let doc = "List rules enabled by a profile" in
   Cmd.v (Cmd.info "list-rules" ~doc ~exits) Term.(const cmd_list_rules $ profile_arg)
 
+(* Stamped by dune from the (version) field in dune-project, so cutting a
+   release does not mean remembering to edit this file too. *)
+let version =
+  match Build_info.V1.version () with
+  | Some v -> Build_info.V1.Version.to_string v
+  | None -> "dev"
+
 let main =
   let doc = "An OCaml linter that works from the typed AST" in
-  let info = Cmd.info "lintml" ~version:"0.1.0" ~doc ~exits in
+  let info = Cmd.info "lintml" ~version ~doc ~exits in
   Cmd.group info ~default:lint_term [ lint_cmd; explain_cmd; list_cmd ]
 
 let () =
