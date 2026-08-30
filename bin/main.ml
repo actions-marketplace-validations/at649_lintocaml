@@ -8,6 +8,13 @@ let exit_no_cmt = 3
 let exit_unsupported_compiler = 4
 let exit_internal = 10
 
+(* Stamped by dune from the (version) field in dune-project, so cutting a
+   release does not mean remembering to edit this file too. *)
+let version =
+  match Build_info.V1.version () with
+  | Some v -> Build_info.V1.Version.to_string v
+  | None -> "dev"
+
 type output_format = Text | Json | Sarif
 
 let output_format_of_string = function
@@ -158,7 +165,8 @@ let run roots format profile_str config_path fail_on report_suppressed fix no_co
                 match output_format with
                 | Json -> print_string (Render_json.render ~report_suppressed outcome)
                 | Sarif ->
-                    print_string (Render_sarif.render ~rules ~report_suppressed outcome)
+                    print_string
+                      (Render_sarif.render ~version ~rules ~report_suppressed outcome)
                 | Text -> Render_text.pp ~report_suppressed Fmt.stdout outcome
               in
               if fix_failed then exit_internal
@@ -306,13 +314,6 @@ let explain_cmd =
 let list_cmd =
   let doc = "List rules enabled by a profile" in
   Cmd.v (Cmd.info "list-rules" ~doc ~exits) Term.(const cmd_list_rules $ profile_arg)
-
-(* Stamped by dune from the (version) field in dune-project, so cutting a
-   release does not mean remembering to edit this file too. *)
-let version =
-  match Build_info.V1.version () with
-  | Some v -> Build_info.V1.Version.to_string v
-  | None -> "dev"
 
 let main =
   let doc = "An OCaml linter that works from the typed AST" in

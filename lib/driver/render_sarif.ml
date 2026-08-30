@@ -132,7 +132,7 @@ let suppressed_result (suppressed : Analyse.suppressed) =
           ] );
     ]
 
-let render ~rules ~report_suppressed (o : Analyse.outcome) =
+let render ~version ~rules ~report_suppressed (o : Analyse.outcome) =
   let results = List.map result_of o.diagnostics in
   let results =
     if report_suppressed then results @ List.map suppressed_result o.suppressed
@@ -154,6 +154,8 @@ let render ~rules ~report_suppressed (o : Analyse.outcome) =
                         `Assoc
                           [
                             ("name", `String "lintml");
+                            ("version", `String version);
+                            ("semanticVersion", `String version);
                             ("informationUri", `String "https://github.com/at649/lintml");
                             ("rules", `List (List.map rule_descriptor rules));
                           ] );
