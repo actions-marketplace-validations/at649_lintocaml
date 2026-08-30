@@ -376,3 +376,15 @@ let nonfatal_reraise_does_not_protect f =
   try f () with
   | Not_found as e -> raise e
   | _ -> 0
+
+(* negative-size: a labelled length hides the size from the rule, so the
+   negative literal here is the fill value and must not be reported. The
+   module has to be named Array for the path to match, which is how Base's
+   Array.create reaches the rule. *)
+module Array = struct
+  include Stdlib.Array
+
+  let create ~len value = Stdlib.Array.make len value
+end
+
+let labelled_fill_value = Array.create ~len:8 (-1)
