@@ -95,6 +95,22 @@ test. Exclude test directories with a path override.
 `List.nth l (Random.int (List.length l))` cannot go out of range, but proving
 it needs value tracking that lintml does not do.
 
+`physical-eq-on-boxed` is the one worth watching. Across yojson, re and
+alcotest it fires not at all; across containers and ocamlgraph it fires
+nineteen times, and every instance inspected was a deliberate identity check
+on a mutable structure — `cur == cur.prev` for a single-element deque,
+`n.next == n` for a self-loop, `assert (p.next == e)` for a list invariant,
+`assert (st.cs == slice.cs)` for two slices over one buffer. The stdlib does
+the same thing in `lexing.ml`, `dynarray.ml` and `string.ml`.
+
+That shape cannot be told apart from the mistake the rule is for. Both are
+`==` on a boxed operand; the difference is intent, and intent is not in the
+typed tree. Comparing a value against a field of itself would be a usable
+signal, but `Expr_view` has no field access — `cur.prev` arrives as `Other` —
+so the rule cannot see it. It stays at error in the default profile because
+the mistake it catches is real; anyone writing pointer-based structures should
+expect to reach for a path override or `[@lintml.allow]`.
+
 `float_of_int (Sys.word_size / 8)` in the stdlib's `gc.ml` divides exactly,
 because a word is 32 or 64 bits, so `truncated-int-division` has nothing to
 truncate. Same shape as the case above: knowing it is exact means knowing the

@@ -215,6 +215,12 @@ reported even though it cannot fail. It does understand a `[]` match arm, a
 It never sees surface syntax. `a.(i)` and `Array.get a i` are the same typed
 node, so rules about formatting or spelling cannot be written. See CONTRIBUTING.
 
+It cannot read intent, which shows up most in `physical-eq-on-boxed`. A
+deliberate identity check on a mutable structure — `cur == cur.prev`, or an
+assertion that two slices share a buffer — looks exactly like the mistake the
+rule exists to catch. Code that builds linked structures should expect to
+suppress it, either per expression or with a path override.
+
 ## Contributing
 
 Adding a rule is the easiest way in: each one is a single module plus a fixture
