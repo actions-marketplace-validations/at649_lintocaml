@@ -1,4 +1,4 @@
-# Copy to lintml.toml at the project root. lintml searches upward from the
+# Copy to lintocaml.toml at the project root. lintocaml searches upward from the
 # directory it runs in, so one file at the top covers the whole tree.
 
 # default   correctness checks and performance problems worth acting on

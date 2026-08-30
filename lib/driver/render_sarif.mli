@@ -3,10 +3,11 @@
 
 val render :
   version:string ->
-  rules:Lintml_engine.Rule.t list ->
+  rules:Lintocaml_engine.Rule.t list ->
   report_suppressed:bool ->
   Analyse.outcome ->
   string
 (** Declares every rule in [rules], not only those that produced findings, so that rule
     metadata stays stable between runs. [version] identifies the analyser to code
-    scanning, which otherwise cannot tell one lintml build's findings from another's. *)
+    scanning, which otherwise cannot tell one lintocaml build's findings from another's.
+*)

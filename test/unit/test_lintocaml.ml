@@ -1,6 +1,6 @@
-open Lintml_engine
+open Lintocaml_engine
 
-let known = Lintml_rules.Registry.ids
+let known = Lintocaml_rules.Registry.ids
 
 let test_config_unknown_rule () =
   match Config.parse_string ~known_rule_ids:known "no-such-rule = error" with
@@ -20,7 +20,7 @@ let test_config_off () =
   match Config.parse_string ~known_rule_ids:known "partial-function = off" with
   | Error e -> Alcotest.fail (String.concat "; " e)
   | Ok cfg ->
-      let r = Option.get (Lintml_rules.Registry.find "partial-function") in
+      let r = Option.get (Lintocaml_rules.Registry.find "partial-function") in
       Alcotest.(check bool) "explicit off disables" true (Config.severity_for cfg r = None)
 
 let test_config_comments_and_blanks () =
@@ -38,7 +38,7 @@ let test_toml_syntax () =
   match Config.parse_string ~known_rule_ids:known source with
   | Error errors -> Alcotest.fail (String.concat "; " errors)
   | Ok cfg ->
-      let rule = Option.get (Lintml_rules.Registry.find "partial-function") in
+      let rule = Option.get (Lintocaml_rules.Registry.find "partial-function") in
       Alcotest.(check bool)
         "quoted profile" true
         (Config.profile cfg = Config.Profile_idiomatic);
@@ -49,23 +49,23 @@ let test_last_override_wins () =
   match Config.parse_string ~known_rule_ids:known source with
   | Error errors -> Alcotest.fail (String.concat "; " errors)
   | Ok cfg ->
-      let rule = Option.get (Lintml_rules.Registry.find "partial-function") in
+      let rule = Option.get (Lintocaml_rules.Registry.find "partial-function") in
       Alcotest.(check bool)
         "last setting wins" true
         (Config.severity_for cfg rule = Some Severity.Error)
 
 let test_default_profile_hides_idiom_rules () =
   let cfg = Config.default in
-  let idiom = Option.get (Lintml_rules.Registry.find "redundant-if-bool") in
-  let bug = Option.get (Lintml_rules.Registry.find "physical-eq-on-boxed") in
+  let idiom = Option.get (Lintocaml_rules.Registry.find "redundant-if-bool") in
+  let bug = Option.get (Lintocaml_rules.Registry.find "physical-eq-on-boxed") in
   Alcotest.(check bool)
     "idiom rule off by default" true
     (Config.severity_for cfg idiom = None);
   Alcotest.(check bool) "bug rule on by default" true (Config.severity_for cfg bug <> None)
 
 let test_profiles_are_distinct () =
-  let idiom = Option.get (Lintml_rules.Registry.find "redundant-if-bool") in
-  let pedantic = Option.get (Lintml_rules.Registry.find "generic-failure") in
+  let idiom = Option.get (Lintocaml_rules.Registry.find "redundant-if-bool") in
+  let pedantic = Option.get (Lintocaml_rules.Registry.find "generic-failure") in
   let idiomatic_cfg = Config.with_profile Config.Profile_idiomatic Config.default in
   let pedantic_cfg = Config.with_profile Config.Profile_pedantic Config.default in
   Alcotest.(check bool)
@@ -91,7 +91,7 @@ let test_path_override_disables_matching_files () =
        paths = [\"test/**\", \"vendor/**\"]\n\
        profile = \"off\"\n"
   in
-  let rule = Option.get (Lintml_rules.Registry.find "partial-function") in
+  let rule = Option.get (Lintocaml_rules.Registry.find "partial-function") in
   Alcotest.(check bool)
     "test file disabled" true
     (Config.severity_for_path cfg rule "test/unit/example.ml" = None);
@@ -111,7 +111,7 @@ let test_path_override_rule_beats_profile () =
        [overrides.rules]\n\
        partial-function = \"hint\"\n"
   in
-  let rule = Option.get (Lintml_rules.Registry.find "partial-function") in
+  let rule = Option.get (Lintocaml_rules.Registry.find "partial-function") in
   Alcotest.(check bool)
     "specific rule is re-enabled" true
     (Config.severity_for_path cfg rule "test/example.ml" = Some Severity.Hint)
@@ -126,7 +126,7 @@ let test_path_overrides_apply_in_order () =
        paths = [\"test/important/*.ml\"]\n\
        profile = \"default\"\n"
   in
-  let rule = Option.get (Lintml_rules.Registry.find "partial-function") in
+  let rule = Option.get (Lintocaml_rules.Registry.find "partial-function") in
   Alcotest.(check bool)
     "later matching override wins" true
     (Config.severity_for_path cfg rule "test/important/example.ml" = Some Severity.Warning)
@@ -154,7 +154,7 @@ let test_comments_inside_strings () =
     parse_config
       "[[overrides]]\npaths = [\"generated/#cache/**\"] # comment\nprofile = \"off\"\n"
   in
-  let rule = Option.get (Lintml_rules.Registry.find "partial-function") in
+  let rule = Option.get (Lintocaml_rules.Registry.find "partial-function") in
   Alcotest.(check bool)
     "hash in quoted path is preserved" true
     (Config.severity_for_path cfg rule "generated/#cache/file.ml" = None)
@@ -242,10 +242,10 @@ let test_all_rules_documented () =
         Alcotest.failf "rule %s has no real rationale (%d chars)" r.id
           (String.length r.docs);
       if r.title = "" then Alcotest.failf "rule %s has no title" r.id)
-    Lintml_rules.Registry.all
+    Lintocaml_rules.Registry.all
 
 let test_rule_ids_unique () =
-  let ids = List.sort String.compare Lintml_rules.Registry.ids in
+  let ids = List.sort String.compare Lintocaml_rules.Registry.ids in
   let rec dup = function
     | a :: b :: _ when a = b -> Some a
     | _ :: t -> dup t
@@ -368,14 +368,14 @@ let test_json_shape () =
   in
   let outcome =
     {
-      Lintml_driver.Analyse.diagnostics = [ diagnostic ];
+      Lintocaml_driver.Analyse.diagnostics = [ diagnostic ];
       suppressed = [];
       files_analysed = 1;
       cmt_files_found = 1;
       load_errors = [];
     }
   in
-  let json = Lintml_driver.Render_json.render ~report_suppressed:true outcome in
+  let json = Lintocaml_driver.Render_json.render ~report_suppressed:true outcome in
   let parsed = Yojson.Safe.from_string json in
   let member name = function `Assoc fields -> List.assoc_opt name fields | _ -> None in
   let () =
@@ -397,7 +397,7 @@ let test_json_shape () =
   ()
 
 let () =
-  Alcotest.run "lintml"
+  Alcotest.run "lintocaml"
     [
       ( "fix",
         [

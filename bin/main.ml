@@ -1,5 +1,5 @@
-open Lintml_engine
-open Lintml_driver
+open Lintocaml_engine
+open Lintocaml_driver
 
 let exit_ok = 0
 let exit_findings = 1
@@ -39,7 +39,7 @@ let absolute_path path =
 
 let find_config_file roots =
   let rec search directory =
-    let toml = Filename.concat directory "lintml.toml" in
+    let toml = Filename.concat directory "lintocaml.toml" in
     if Sys.file_exists toml then Some toml
     else
       let parent = Filename.dirname directory in
@@ -60,7 +60,7 @@ let parse_config_file ~known_rule_ids path =
         (Config.parse_string ~known_rule_ids source)
 
 let load_config ~roots ~config_path ~profile_override =
-  let known_rule_ids = Lintml_rules.Registry.ids in
+  let known_rule_ids = Lintocaml_rules.Registry.ids in
   let base =
     match config_path with
     | None -> (
@@ -82,26 +82,26 @@ let run roots format profile_str config_path fail_on report_suppressed fix no_co
   let threshold = threshold_of_string fail_on in
   match (profile_str, profile_override, threshold, output_format) with
   | Some bad, None, _, _ ->
-      Fmt.epr "lintml: unknown profile %S@." bad;
+      Fmt.epr "lintocaml: unknown profile %S@." bad;
       exit_usage
   | _, _, None, _ ->
-      Fmt.epr "lintml: unknown --fail-on value %S@." fail_on;
+      Fmt.epr "lintocaml: unknown --fail-on value %S@." fail_on;
       exit_usage
   | _, _, _, None ->
-      Fmt.epr "lintml: unknown --format value %S@." format;
+      Fmt.epr "lintocaml: unknown --format value %S@." format;
       exit_usage
   | _, _, Some threshold, Some output_format -> (
       match load_config ~roots ~config_path ~profile_override with
       | Error errs ->
-          List.iter (fun e -> Fmt.epr "lintml: config: %s@." e) errs;
+          List.iter (fun e -> Fmt.epr "lintocaml: config: %s@." e) errs;
           exit_usage
       | Ok cfg -> (
-          let rules = Lintml_rules.Registry.all in
+          let rules = Lintocaml_rules.Registry.all in
           let outcome = Analyse.run ~cfg ~rules ~roots in
           if outcome.cmt_files_found = 0 then (
             Fmt.epr
-              "lintml: no .cmt or .cmti files found under %s@.\n\
-               lintml reads the typed AST the compiler already produces.@.\n\
+              "lintocaml: no .cmt or .cmti files found under %s@.\n\
+               lintocaml reads the typed AST the compiler already produces.@.\n\
                Build the project first:@.@.    dune build @@check@.@."
               (String.concat ", " roots);
             exit_no_cmt)
@@ -123,10 +123,10 @@ let run roots format profile_str config_path fail_on report_suppressed fix no_co
                 match error with
                 | Tast_iface.Unsupported_compiler version ->
                     Fmt.epr
-                      "lintml: warning: %s was produced by unsupported compiler %s@." path
-                      version
+                      "lintocaml: warning: %s was produced by unsupported compiler %s@."
+                      path version
                 | Tast_iface.Invalid_cmt message ->
-                    Fmt.epr "lintml: warning: cannot read %s: %s@." path message)
+                    Fmt.epr "lintocaml: warning: cannot read %s: %s@." path message)
               outcome.load_errors;
             let nothing_analysed = outcome.files_analysed = 0 in
             if nothing_analysed then
@@ -140,7 +140,7 @@ let run roots format profile_str config_path fail_on report_suppressed fix no_co
                 | None -> false
                 | Some result ->
                     List.iter
-                      (fun error -> Fmt.epr "lintml: fix: %s@." error)
+                      (fun error -> Fmt.epr "lintocaml: fix: %s@." error)
                       result.errors;
                     (if result.errors = [] then
                        let reasons =
@@ -156,7 +156,7 @@ let run roots format profile_str config_path fail_on report_suppressed fix no_co
                          | _ -> Fmt.str " (%s)" (String.concat ", " reasons)
                        in
                        Fmt.epr
-                         "lintml: applied %d fix(es), skipped %d%s.@.Rebuild before \
+                         "lintocaml: applied %d fix(es), skipped %d%s.@.Rebuild before \
                           linting again.@."
                          result.applied result.skipped skipped);
                     result.errors <> []
@@ -183,10 +183,10 @@ let run roots format profile_str config_path fail_on report_suppressed fix no_co
                     else exit_ok))
 
 let cmd_explain rule_id =
-  match Lintml_rules.Registry.find rule_id with
+  match Lintocaml_rules.Registry.find rule_id with
   | None ->
-      Fmt.epr "lintml: no such rule %S@.@.Known rules:@." rule_id;
-      List.iter (fun id -> Fmt.epr "  %s@." id) Lintml_rules.Registry.ids;
+      Fmt.epr "lintocaml: no such rule %S@.@.Known rules:@." rule_id;
+      List.iter (fun id -> Fmt.epr "  %s@." id) Lintocaml_rules.Registry.ids;
       exit_usage
   | Some r ->
       Fmt.pr "@[<v>%s@,%s@,@,category: %s@,default severity: %s@,profile: %s@,@,%s@]@."
@@ -210,7 +210,7 @@ let cmd_list_rules profile_str =
   match profile with
   | None ->
       let value = Option.value ~default:"" profile_str in
-      Fmt.epr "lintml: unknown profile %S@." value;
+      Fmt.epr "lintocaml: unknown profile %S@." value;
       exit_usage
   | Some profile ->
       let cfg = Config.with_profile profile Config.default in
@@ -224,7 +224,7 @@ let cmd_list_rules profile_str =
               | Rule.Idiomatic -> "idiomatic"
               | Rule.Pedantic -> "pedantic")
               r.title)
-        Lintml_rules.Registry.all;
+        Lintocaml_rules.Registry.all;
       exit_ok
 
 open Cmdliner
@@ -264,7 +264,7 @@ let config_arg =
   Arg.(
     value
     & opt (some string) None
-    & info [ "config" ] ~docv:"FILE" ~doc:"Path to a lintml config file.")
+    & info [ "config" ] ~docv:"FILE" ~doc:"Path to a lintocaml config file.")
 
 let fail_on_arg =
   Arg.(
@@ -281,7 +281,7 @@ let report_suppressed_arg =
     value
     & flag
     & info [ "report-suppressed" ]
-        ~doc:"Include findings suppressed by lintml.allow attributes.")
+        ~doc:"Include findings suppressed by lintocaml.allow attributes.")
 
 let fix_arg =
   Arg.(
@@ -317,7 +317,7 @@ let list_cmd =
 
 let main =
   let doc = "An OCaml linter that works from the typed AST" in
-  let info = Cmd.info "lintml" ~version ~doc ~exits in
+  let info = Cmd.info "lintocaml" ~version ~doc ~exits in
   Cmd.group info ~default:lint_term [ lint_cmd; explain_cmd; list_cmd ]
 
 let () =

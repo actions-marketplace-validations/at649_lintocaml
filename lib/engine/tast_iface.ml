@@ -65,7 +65,7 @@ let classify_constr local_types ~fallback_env env path =
 
 let expanded_type env ty =
   match (try Some (Ctype.expand_head env ty) with _ -> None)
-        [@lintml.allow "swallowed-exception"]
+        [@lintocaml.allow "swallowed-exception"]
   with
   | None -> None
   | Some ty -> Some ty
@@ -279,7 +279,7 @@ let allowed_rules (attrs : Parsetree.attributes) =
   in
   List.filter_map
     (fun (a : Parsetree.attribute) ->
-      if a.attr_name.txt <> "lintml.allow" then None
+      if a.attr_name.txt <> "lintocaml.allow" then None
       else
         match a.attr_payload with
         | Parsetree.PStr

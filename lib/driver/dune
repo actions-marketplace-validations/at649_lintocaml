@@ -1,3 +1,3 @@
 (library
- (name lintml_driver)
- (libraries lintml_engine lintml_rules fmt yojson unix))
+ (name lintocaml_driver)
+ (libraries lintocaml_engine lintocaml_rules fmt yojson unix))

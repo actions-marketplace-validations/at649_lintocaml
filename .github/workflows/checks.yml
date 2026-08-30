@@ -24,10 +24,10 @@ jobs:
           ocaml-compiler: "5.2.x"
       - run: opam install . --deps-only --with-test --with-dev-setup
       - run: opam exec -- dune build @fmt
-      - name: lintml must be clean on its own source
+      - name: lintocaml must be clean on its own source
         run: |
           opam exec -- dune build @check
-          opam exec -- dune exec -- lintml --no-color --fail-on hint \
+          opam exec -- dune exec -- lintocaml --no-color --fail-on hint \
             _build/default/lib _build/default/bin
 
   test:

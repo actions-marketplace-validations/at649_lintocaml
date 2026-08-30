@@ -4,8 +4,8 @@
  (alias runtest)
  (deps
   run_fixtures.sh
-  lintml-test.toml
-  ../lintml.toml.example
+  lintocaml-test.toml
+  ../lintocaml.toml.example
   ../bin/main.exe
   jsonq.exe
   (source_tree fixtures))
@@ -14,7 +14,7 @@
    %{workspace_root}
    (run ./test/run_fixtures.sh))))
 
-; Answers the fixture assertions about lintml's JSON and SARIF output. It
+; Answers the fixture assertions about lintocaml's JSON and SARIF output. It
 ; exists so run_fixtures.sh needs no python3, which the opam builders lack.
 
 (executable

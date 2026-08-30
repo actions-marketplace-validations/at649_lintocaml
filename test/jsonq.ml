@@ -1,9 +1,9 @@
-(* Assertions over lintml's own JSON and SARIF output, for run_fixtures.sh.
+(* Assertions over lintocaml's own JSON and SARIF output, for run_fixtures.sh.
 
    These checks used to be inline python3. Nothing in the package needs python,
    and the opam builders do not ship it, so every fixture assertion silently
    turned into a failure there. Yojson is already a dependency, so asking OCaml
-   the same questions costs nothing and runs wherever lintml itself builds. *)
+   the same questions costs nothing and runs wherever lintocaml itself builds. *)
 
 let die message =
   prerr_endline ("jsonq: " ^ message);

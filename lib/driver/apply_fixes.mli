@@ -11,7 +11,7 @@ type result = {
 
 val skip_reason_to_string : skip_reason -> string
 
-val run : Lintml_engine.Diagnostic.t list -> result
+val run : Lintocaml_engine.Diagnostic.t list -> result
 (** Applies every mechanically safe fix.
 
     Three guarantees, in order of importance:

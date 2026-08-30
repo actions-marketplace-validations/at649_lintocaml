@@ -1,11 +1,11 @@
-# lintml
+# lintocaml
 
 An OCaml linter that works from the typed AST. It reads the `.cmt` files your
 build produces, so rules see resolved names and real types: `a == b` on two
 strings is reported, `a == b` on two ints is not.
 
 ```console
-$ dune build @check && lintml
+$ dune build @check && lintocaml
 src/parse.ml:8:45: error: physical equality `==` on a boxed value compares allocations, not contents
   | let same_string (a : string) (b : string) = a == b
   |                                             ^^^^^^
@@ -33,10 +33,10 @@ variable rather than a known one, the rule says nothing rather than guess.
 
 ## Install
 
-Until the opam release lands, pin the tag:
+Until the opam release lands, pin the repository:
 
 ```sh
-opam pin add lintml https://github.com/at649/lintml.git#v0.1.5
+opam pin add lintocaml https://github.com/at649/lintocaml.git
 ```
 
 From a clone instead:
@@ -44,29 +44,29 @@ From a clone instead:
 ```sh
 opam install . --deps-only --with-test
 opam exec -- dune build @install
-opam pin add --yes lintml.dev .
+opam pin add --yes lintocaml.dev .
 ```
 
-To work on lintml without installing it, use
-`opam exec -- dune exec lintml -- --help`.
+To work on lintocaml without installing it, use
+`opam exec -- dune exec lintocaml -- --help`.
 
 ## Getting started
 
-lintml reads compiler artifacts, so build the project before linting it. Exit
+lintocaml reads compiler artifacts, so build the project before linting it. Exit
 code 3 means no artifacts were found.
 
 ```sh
 dune build @check        # produces .cmt files
-lintml                   # lints _build
+lintocaml                   # lints _build
 ```
 
 | Command | |
 |---|---|
-| `lintml lint PATH` | lint a specific directory |
-| `lintml list-rules` | rules active in a profile |
-| `lintml explain RULE` | why a rule exists and what to do instead |
-| `lintml --fix` | apply the mechanically safe fixes |
-| `lintml --version` | print the installed version |
+| `lintocaml lint PATH` | lint a specific directory |
+| `lintocaml list-rules` | rules active in a profile |
+| `lintocaml explain RULE` | why a rule exists and what to do instead |
+| `lintocaml --fix` | apply the mechanically safe fixes |
+| `lintocaml --version` | print the installed version |
 
 | Flag | |
 |---|---|
@@ -77,7 +77,7 @@ lintml                   # lints _build
 
 ## What it catches
 
-51 rules. `lintml list-rules --profile pedantic` prints them all; a
+51 rules. `lintocaml list-rules --profile pedantic` prints them all; a
 representative sample:
 
 **Correctness** — on by default
@@ -112,7 +112,7 @@ others. Useful on a codebase you are cleaning up, noise on one you are not.
 
 ## Configuration
 
-`lintml.toml`, found by searching upward from the current directory:
+`lintocaml.toml`, found by searching upward from the current directory:
 
 ```toml
 profile = "default"
@@ -143,7 +143,7 @@ To suppress one finding, say so where it happens:
 
 ```ocaml
 (left == right)
-[@lintml.allow ("physical-eq-on-boxed", "identity is intentional")]
+[@lintocaml.allow ("physical-eq-on-boxed", "identity is intentional")]
 ```
 
 ## Fixes
@@ -170,13 +170,13 @@ steps:
   - uses: ocaml/setup-ocaml@v3
     with:
       ocaml-compiler: "5.5.x"
-  - uses: at649/lintml@v0.1.5
+  - uses: at649/lintocaml@main
     with:
       profile: default
       fail-on: error
 ```
 
-The action installs lintml in the opam switch created by `setup-ocaml`, builds
+The action installs lintocaml in the opam switch created by `setup-ocaml`, builds
 the project, and uploads SARIF so findings appear in code scanning. Set
 `upload-sarif: "false"` if the repository cannot grant `security-events: write`.
 For several scan roots, put one path on each line:
@@ -206,7 +206,7 @@ usable. Codes 4 and 10 mean nothing was analysable.
 
 The project has to build first. Any build that passes `-bin-annot` works: dune,
 `ocamlfind ocamlc -bin-annot`, a Makefile. Builds that never emit `.cmt` give
-lintml nothing to read.
+lintocaml nothing to read.
 
 It does not track values, so `List.nth l (Random.int (List.length l))` is
 reported even though it cannot fail. It does understand a `[]` match arm, a

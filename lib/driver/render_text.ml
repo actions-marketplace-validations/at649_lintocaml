@@ -1,4 +1,4 @@
-open Lintml_engine
+open Lintocaml_engine
 
 let colour = ref true
 let sgr code s = if !colour then Fmt.str "\027[%sm%s\027[0m" code s else s

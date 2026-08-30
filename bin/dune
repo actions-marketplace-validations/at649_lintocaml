@@ -1,10 +1,10 @@
 (executable
  (name main)
- (public_name lintml)
+ (public_name lintocaml)
  (libraries
-  lintml_engine
-  lintml_rules
-  lintml_driver
+  lintocaml_engine
+  lintocaml_rules
+  lintocaml_driver
   cmdliner
   fmt
   unix

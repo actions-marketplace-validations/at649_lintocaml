@@ -1,4 +1,4 @@
-open Lintml_engine
+open Lintocaml_engine
 open Expr_view
 
 let docs =
@@ -9,7 +9,7 @@ depend on representation details.
 
 Use the equality, comparison, or hash function exposed by the type's module.
 This is opt-in advice: some abstract types intentionally use structural
-comparison, and lintml cannot infer that contract.|}
+comparison, and lintocaml cannot infer that contract.|}
 
 let comparison_operators =
   [

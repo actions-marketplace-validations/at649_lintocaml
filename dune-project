@@ -1,20 +1,20 @@
 (lang dune 3.0)
-(name lintml)
+(name lintocaml)
 (version 0.1.5)
 (generate_opam_files true)
 
-(source (github at649/lintml))
-(homepage https://github.com/at649/lintml)
-(bug_reports https://github.com/at649/lintml/issues)
+(source (github at649/lintocaml))
+(homepage https://github.com/at649/lintocaml)
+(bug_reports https://github.com/at649/lintocaml/issues)
 (license MIT)
 (authors "at649")
 (maintainers "at649")
 
 (package
- (name lintml)
+ (name lintocaml)
  (synopsis "An OCaml linter that works from the typed AST")
  (description
-  "lintml reads the typed AST produced by an OCaml build and reports correctness issues, partial API use, and avoidable traversals. Style and idiom rules are available through opt-in profiles.")
+  "lintocaml reads the typed AST produced by an OCaml build and reports correctness issues, partial API use, and avoidable traversals. Style and idiom rules are available through opt-in profiles.")
  (depends
   (ocaml (and (>= 5.2) (< 5.6)))
   (cppo (>= 1.8.0))

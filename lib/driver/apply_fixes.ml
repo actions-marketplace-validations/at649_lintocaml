@@ -1,4 +1,4 @@
-open Lintml_engine
+open Lintocaml_engine
 
 type skip_reason = Overlapping | Stale_source | Invalid
 
@@ -63,7 +63,7 @@ let write_atomic path contents =
     Option.iter (fun path -> try Sys.remove path with Sys_error _ -> ()) !temporary
   in
   try
-    let temporary_path = Filename.temp_file ~temp_dir:directory ".lintml-" ".tmp" in
+    let temporary_path = Filename.temp_file ~temp_dir:directory ".lintocaml-" ".tmp" in
     temporary := Some temporary_path;
     Out_channel.with_open_bin temporary_path (fun channel ->
         Out_channel.output_string channel contents);

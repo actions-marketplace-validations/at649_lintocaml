@@ -36,7 +36,7 @@ type t = {
   profile : profile;
   default_severity : Severity.t;
   docs : string;
-      (** Printed by [lintml explain]. A rule that cannot justify itself in three
+      (** Printed by [lintocaml explain]. A rule that cannot justify itself in three
           sentences is an opinion, not a lint. *)
   check : Expr_view.t -> finding list;  (** Must be pure and independent of visit order. *)
 }

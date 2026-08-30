@@ -1,4 +1,4 @@
-open Lintml_engine
+open Lintocaml_engine
 
 let of_diagnostic (d : Diagnostic.t) =
   `Assoc

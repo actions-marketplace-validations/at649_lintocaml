@@ -1,19 +1,19 @@
-- id: lintml
-  name: lintml
+- id: lintocaml
+  name: lintocaml
   description: >
     Lint the typed artifacts dune produces. Requires the project to be built;
-    lintml exits 3 with instructions when no artifacts are found.
-  entry: lintml --no-color
+    lintocaml exits 3 with instructions when no artifacts are found.
+  entry: lintocaml --no-color
   language: system
   types: [file]
   files: \.mli?$
   pass_filenames: false
   require_serial: true
 
-- id: lintml-with-build
-  name: lintml (build first)
+- id: lintocaml-with-build
+  name: lintocaml (build first)
   description: Build compiler artifacts, then lint them.
-  entry: bash -c 'dune build @check && lintml --no-color'
+  entry: bash -c 'dune build @check && lintocaml --no-color'
   language: system
   types: [file]
   files: \.mli?$

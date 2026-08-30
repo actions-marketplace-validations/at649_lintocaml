@@ -1,4 +1,4 @@
-open Lintml_engine
+open Lintocaml_engine
 
 type t = { contents : string; line_offsets : int array }
 

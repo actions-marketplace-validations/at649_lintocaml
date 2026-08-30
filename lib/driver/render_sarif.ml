@@ -1,4 +1,4 @@
-open Lintml_engine
+open Lintocaml_engine
 
 (* SARIF 2.1.0 is what GitHub code scanning consumes, which puts findings
    inline on pull requests with no custom CI glue. *)
@@ -65,7 +65,7 @@ let result_of (d : Diagnostic.t) =
                   `Assoc
                     [
                       ( "description",
-                        `Assoc [ ("text", `String "Apply lintml's safe fix") ] );
+                        `Assoc [ ("text", `String "Apply lintocaml's safe fix") ] );
                       ( "artifactChanges",
                         `List
                           [
@@ -153,10 +153,11 @@ let render ~version ~rules ~report_suppressed (o : Analyse.outcome) =
                       ( "driver",
                         `Assoc
                           [
-                            ("name", `String "lintml");
+                            ("name", `String "lintocaml");
                             ("version", `String version);
                             ("semanticVersion", `String version);
-                            ("informationUri", `String "https://github.com/at649/lintml");
+                            ( "informationUri",
+                              `String "https://github.com/at649/lintocaml" );
                             ("rules", `List (List.map rule_descriptor rules));
                           ] );
                     ] );

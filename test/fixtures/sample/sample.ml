@@ -1,4 +1,4 @@
-(* Fixtures for lintml. Line numbers are asserted by test/run_fixtures.sh,
+(* Fixtures for lintocaml. Line numbers are asserted by test/run_fixtures.sh,
    so do not reflow this file without updating it. *)
 
 (* ---- must be flagged ---- *)
@@ -98,7 +98,7 @@ let repeated_nth items = List.mapi (fun index _item -> List.nth items index) ite
 let linear_concat parts = String.concat "" parts
 let linear_list items = List.rev (List.fold_left (fun acc item -> item :: acc) [] items)
 let nth_other items other = List.map (fun _item -> List.nth other 0) items
-let allowed_identity (a : string) b = (a == b) [@lintml.allow ("physical-eq-on-boxed", "allocation identity is intended")]
+let allowed_identity (a : string) b = (a == b) [@lintocaml.allow ("physical-eq-on-boxed", "allocation identity is intended")]
 let safe_float_literals = 1.0 = 2.0
 let safe_ok_result () = ignore (Ok 1)
 
@@ -108,7 +108,7 @@ let reraises_in_both_branches condition =
 
 let before_structure_allow (a : string) b = a == b
 
-[@@@lintml.allow
+[@@@lintocaml.allow
   ("physical-eq-on-boxed", "generated module intentionally checks identity")]
 
 let after_structure_allow (a : string) b = a == b
@@ -356,7 +356,7 @@ let real_format (n : int) = Printf.sprintf "count: %d" n
 let two_args a b = Printf.sprintf "%s%s" a b
 
 module Scoped_allow = struct
-  [@@@lintml.allow
+  [@@@lintocaml.allow
     ("partial-function", "this module handles partial calls at its boundary")]
 
   let hidden_partial value = List.hd value

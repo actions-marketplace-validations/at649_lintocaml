@@ -30,6 +30,6 @@ type t = {
   category : category;
   profile : profile;
   default_severity : Severity.t;
-  docs : string; (* Rendered by [lintml explain]. *)
+  docs : string; (* Rendered by [lintocaml explain]. *)
   check : Expr_view.t -> finding list;
 }

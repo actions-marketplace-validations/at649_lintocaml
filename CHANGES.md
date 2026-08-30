@@ -19,8 +19,8 @@
 ## 0.1.2
 
 - SARIF now reports the analyser version, so code scanning can tell one
-  lintml build's findings from another's.
-- Dropped the `lintml.conf` fallback. It named a file that never shipped, so
+  lintocaml build's findings from another's.
+- Dropped the `lintocaml.conf` fallback. It named a file that never shipped, so
   a stray one could quietly become config.
 - Fixed the action reference in the README, which pointed at a tag that does
   not exist.

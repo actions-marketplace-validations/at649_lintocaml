@@ -19,7 +19,7 @@ val profile_of_string : string -> profile_selection option
 val with_root_dir : string -> t -> t
 (** Anchors relative path patterns. Overrides are written relative to the directory
     holding the config file, not to the working directory, so that a config means the same
-    thing wherever lintml is invoked from. *)
+    thing wherever lintocaml is invoked from. *)
 
 val profile : t -> profile_selection
 

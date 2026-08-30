@@ -1,6 +1,6 @@
 ; fmt is used directly by the rule messages; it was previously reaching the
-; rules only through lintml_engine's own dependency on it.
+; rules only through lintocaml_engine's own dependency on it.
 
 (library
- (name lintml_rules)
- (libraries lintml_engine fmt))
+ (name lintocaml_rules)
+ (libraries lintocaml_engine fmt))

@@ -1,4 +1,4 @@
-open Lintml_engine
+open Lintocaml_engine
 
 type outcome = {
   diagnostics : Diagnostic.t list;
@@ -88,7 +88,7 @@ let analyse_cmt ~cfg ~rules path =
         let source_matches_artifact location =
           let location = resolve_location location in
           (* OCaml 5.5 changed the source digest stored in CMT files from MD5 to
-           BLAKE128. lintml accepts artifacts from both sides of that change. *)
+           BLAKE128. lintocaml accepts artifacts from both sides of that change. *)
           let digest_matches source digest =
             String.equal (Digest.string source.Source_text.contents) digest
             || String.equal (Digest.BLAKE128.string source.contents) digest

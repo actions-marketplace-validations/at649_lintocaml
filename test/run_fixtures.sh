@@ -5,9 +5,9 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 if [ -x "$ROOT/_build/default/bin/main.exe" ]; then
-  LINTML="$ROOT/_build/default/bin/main.exe"
+  LINTOCAML="$ROOT/_build/default/bin/main.exe"
 else
-  LINTML="$ROOT/bin/main.exe"
+  LINTOCAML="$ROOT/bin/main.exe"
 fi
 FIXTURE="$ROOT/test/fixtures/sample"
 if [ -x "$ROOT/_build/default/test/jsonq.exe" ]; then
@@ -15,7 +15,7 @@ if [ -x "$ROOT/_build/default/test/jsonq.exe" ]; then
 else
   JSONQ="$ROOT/test/jsonq.exe"
 fi
-TEST_CONFIG="$ROOT/test/lintml-test.toml"
+TEST_CONFIG="$ROOT/test/lintocaml-test.toml"
 TEMP_DIRS=()
 
 cleanup() {
@@ -28,12 +28,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-[ -x "$LINTML" ] || { echo "FAIL: build lintml first (dune build)"; exit 1; }
+[ -x "$LINTOCAML" ] || { echo "FAIL: build lintocaml first (dune build)"; exit 1; }
 ( cd "$FIXTURE" && dune clean && dune build @check 2>/dev/null ) ||
   { echo "FAIL: fixture build"; exit 1; }
 
-OUT=$("$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic --format json "$FIXTURE/_build")
-OUT_DEFAULT=$("$LINTML" --no-color --config "$TEST_CONFIG" --profile default --format json "$FIXTURE/_build")
+OUT=$("$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic --format json "$FIXTURE/_build")
+OUT_DEFAULT=$("$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile default --format json "$FIXTURE/_build")
 fails=0
 
 if echo "$OUT" | "$JSONQ" replacement-metadata; then
@@ -247,7 +247,7 @@ TEMP_DIRS+=("$FIX_PROJECT")
 cp -R "$ROOT/test/fixtures/fix/." "$FIX_PROJECT/"
 ( cd "$FIX_PROJECT" && dune build @check 2>/dev/null ) ||
   { echo "FAIL: fix fixture build"; exit 1; }
-"$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic \
+"$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic \
   --fail-on never --fix "$FIX_PROJECT/_build" >/dev/null
 EXPECTED_FIX='let choose value = value
 let append values = values
@@ -271,7 +271,7 @@ chmod -R u+w "$STALE_PROJECT"
 stale_source=$(cat "$STALE_PROJECT/fix_fixture.ml")
 printf '%s\n' "${stale_source//if true then value/if flag then value}" \
   > "$STALE_PROJECT/fix_fixture.ml"
-"$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic \
+"$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic \
   --fail-on never --fix "$STALE_PROJECT/_build" >/dev/null 2>/dev/null
 STALE_EXPECTED='let choose value = if flag then value else 0
 let append values = [] @ values
@@ -292,19 +292,19 @@ fi
 
 echo
 echo "command contract:"
-expect_exit 2 "$LINTML" --format yaml does-not-exist
-expect_exit 2 "$LINTML" --fail-on loud does-not-exist
-expect_exit 2 "$LINTML" does-not-exist
-expect_exit 3 "$LINTML" lint does-not-exist
-expect_exit 0 "$LINTML" explain ignored-result
-expect_exit 2 "$LINTML" explain does-not-exist
-expect_exit 2 "$LINTML" list-rules --profile loud
-expect_exit 1 "$LINTML" --no-color --config "$TEST_CONFIG" "$FIXTURE/_build"
-expect_exit 0 "$LINTML" --no-color --fail-on never "$FIXTURE/_build"
+expect_exit 2 "$LINTOCAML" --format yaml does-not-exist
+expect_exit 2 "$LINTOCAML" --fail-on loud does-not-exist
+expect_exit 2 "$LINTOCAML" does-not-exist
+expect_exit 3 "$LINTOCAML" lint does-not-exist
+expect_exit 0 "$LINTOCAML" explain ignored-result
+expect_exit 2 "$LINTOCAML" explain does-not-exist
+expect_exit 2 "$LINTOCAML" list-rules --profile loud
+expect_exit 1 "$LINTOCAML" --no-color --config "$TEST_CONFIG" "$FIXTURE/_build"
+expect_exit 0 "$LINTOCAML" --no-color --fail-on never "$FIXTURE/_build"
 
-DEFAULT_RULES=$("$LINTML" list-rules)
-IDIOMATIC_RULES=$("$LINTML" list-rules --profile idiomatic)
-PEDANTIC_RULES=$("$LINTML" list-rules --profile pedantic)
+DEFAULT_RULES=$("$LINTOCAML" list-rules)
+IDIOMATIC_RULES=$("$LINTOCAML" list-rules --profile idiomatic)
+PEDANTIC_RULES=$("$LINTOCAML" list-rules --profile pedantic)
 if ! echo "$DEFAULT_RULES" | grep -q redundant-if-bool \
    && echo "$IDIOMATIC_RULES" | grep -q redundant-if-bool \
    && ! echo "$IDIOMATIC_RULES" | grep -q generic-failure \
@@ -316,7 +316,7 @@ fi
 
 DISCOVERED=$(
   cd "$FIXTURE" &&
-  "$LINTML" --no-color --profile pedantic --format json _build
+  "$LINTOCAML" --no-color --profile pedantic --format json _build
 )
 if echo "$DISCOVERED" | "$JSONQ" no-diagnostics; then
   echo "  ok       discovers config upward and applies path override"
@@ -326,7 +326,7 @@ fi
 
 EXPLICIT_RELATIVE=$(
   cd "$FIXTURE" &&
-  "$LINTML" --no-color --config ./lintml.toml --profile pedantic --format json _build
+  "$LINTOCAML" --no-color --config ./lintocaml.toml --profile pedantic --format json _build
 )
 if echo "$EXPLICIT_RELATIVE" | "$JSONQ" no-diagnostics; then
   echo "  ok       anchors an explicit relative config to its real directory"
@@ -336,7 +336,7 @@ fi
 
 DISCOVERED_FROM_ROOT=$(
   cd "${TMPDIR:-/tmp}" &&
-  "$LINTML" --no-color --profile pedantic --format json "$FIXTURE/_build"
+  "$LINTOCAML" --no-color --profile pedantic --format json "$FIXTURE/_build"
 )
 if echo "$DISCOVERED_FROM_ROOT" | "$JSONQ" no-diagnostics; then
   echo "  ok       discovers config from an explicit scan root"
@@ -345,7 +345,7 @@ else
 fi
 
 SUPPRESSED=$(
-  "$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic \
+  "$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic \
     --report-suppressed --format json \
     "$FIXTURE/_build"
 )
@@ -359,19 +359,19 @@ fi
 BAD_CMT_DIR=$(mktemp -d)
 TEMP_DIRS+=("$BAD_CMT_DIR")
 printf 'not a cmt\n' > "$BAD_CMT_DIR/broken.cmt"
-expect_exit 10 "$LINTML" lint "$BAD_CMT_DIR"
+expect_exit 10 "$LINTOCAML" lint "$BAD_CMT_DIR"
 
-OUT_AGAIN=$("$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic --format json "$FIXTURE/_build")
+OUT_AGAIN=$("$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic --format json "$FIXTURE/_build")
 if [ "$OUT" = "$OUT_AGAIN" ]; then
   echo "  ok       JSON output is byte-identical"
 else
   echo "  WRONG    JSON output is not deterministic"; fails=$((fails+1))
 fi
 
-SARIF=$("$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic --format sarif "$FIXTURE/_build")
+SARIF=$("$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic --format sarif "$FIXTURE/_build")
 # The expected rule count comes from the registry rather than a literal, so
 # adding a rule does not require editing this assertion.
-RULE_COUNT=$("$LINTML" list-rules --profile pedantic | grep -c .)
+RULE_COUNT=$("$LINTOCAML" list-rules --profile pedantic | grep -c .)
 if echo "$SARIF" | "$JSONQ" sarif-structure "$RULE_COUNT"; then
   echo "  ok       SARIF structure and rule metadata"
 else
@@ -379,7 +379,7 @@ else
 fi
 
 SARIF_SUPPRESSED=$(
-  "$LINTML" --no-color --config "$TEST_CONFIG" --profile pedantic \
+  "$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic \
     --report-suppressed --format sarif \
     "$FIXTURE/_build"
 )
@@ -529,7 +529,7 @@ echo "degraded inputs:"
 MIXED=$(mktemp -d)
 cp -R "$FIXTURE/_build" "$MIXED/"
 echo "not a cmt file" > "$MIXED/_build/broken.cmt"
-MIXED_OUT=$("$LINTML" --no-color --fail-on never --format json "$MIXED/_build" 2>"$MIXED/err")
+MIXED_OUT=$("$LINTOCAML" --no-color --fail-on never --format json "$MIXED/_build" 2>"$MIXED/err")
 if echo "$MIXED_OUT" | "$JSONQ" has-diagnostics; then
   echo "  ok       findings survive an unreadable artifact"
 else
@@ -550,7 +550,7 @@ rm -rf "$MIXED"
 # When nothing at all could be analysed, that is an error rather than silence.
 ONLYBAD=$(mktemp -d)
 echo "junk" > "$ONLYBAD/x.cmt"
-"$LINTML" --no-color "$ONLYBAD" >/dev/null 2>&1
+"$LINTOCAML" --no-color "$ONLYBAD" >/dev/null 2>&1
 if [ "$?" -eq 10 ]; then
   echo "  ok       exit 10 when no artifact could be read"
 else
@@ -559,15 +559,15 @@ fi
 rm -rf "$ONLYBAD"
 
 # The example config is shipped for users to copy, so it has to parse.
-if "$LINTML" --config "$ROOT/lintml.toml.example" --fail-on never "$FIXTURE/_build" >/dev/null 2>&1; then
-  echo "  ok       lintml.toml.example is valid configuration"
+if "$LINTOCAML" --config "$ROOT/lintocaml.toml.example" --fail-on never "$FIXTURE/_build" >/dev/null 2>&1; then
+  echo "  ok       lintocaml.toml.example is valid configuration"
 else
-  echo "  WRONG    lintml.toml.example does not parse"; fails=$((fails+1))
+  echo "  WRONG    lintocaml.toml.example does not parse"; fails=$((fails+1))
 fi
 
 echo "repository invariants:"
 # Each rule's module name must be its id with hyphens as underscores, so the
-# file a reader opens matches the id lintml printed.
+# file a reader opens matches the id lintocaml printed.
 mismatches=0
 for file in lib/rules/*.ml; do
   base=$(basename "$file" .ml)

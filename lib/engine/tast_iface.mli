@@ -1,7 +1,7 @@
 (** The only module permitted to depend on [compiler-libs].
 
-    Everything else in lintml sees {!Expr_view.t} and nothing more. This signature is what
-    makes that a fact rather than a convention: [Typedtree], [Types], [Path] and
+    Everything else in lintocaml sees {!Expr_view.t} and nothing more. This signature is
+    what makes that a fact rather than a convention: [Typedtree], [Types], [Path] and
     [Cmt_format] do not appear in it, so no rule can reach them even by accident.
 
     When a compiler release changes [compiler-libs], the compatibility work stays in this

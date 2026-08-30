@@ -1,4 +1,4 @@
-name: "lintml"
+name: "lintocaml"
 description: "Lint an OCaml project and upload the findings to GitHub code scanning"
 author: "at649"
 
@@ -31,24 +31,24 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install lintml
+    - name: Install lintocaml
       shell: bash
       run: |
-        opam pin add --no-action --yes lintml "$GITHUB_ACTION_PATH"
-        opam install --yes lintml
+        opam pin add --no-action --yes lintocaml "$GITHUB_ACTION_PATH"
+        opam install --yes lintocaml
 
     - name: Build compiler artifacts
       if: inputs.build == 'true'
       shell: bash
       run: opam exec -- dune build @check
 
-    - name: Run lintml
+    - name: Run lintocaml
       id: lint
       shell: bash
       env:
-        LINTML_PATHS: ${{ inputs.paths }}
-        LINTML_PROFILE: ${{ inputs.profile }}
-        LINTML_FAIL_ON: ${{ inputs.fail-on }}
+        LINTOCAML_PATHS: ${{ inputs.paths }}
+        LINTOCAML_PROFILE: ${{ inputs.profile }}
+        LINTOCAML_FAIL_ON: ${{ inputs.fail-on }}
       run: |
         set -uo pipefail
         paths=()
@@ -56,30 +56,30 @@ runs:
           if [[ -n "$path" ]]; then
             paths+=("$path")
           fi
-        done <<< "$LINTML_PATHS"
+        done <<< "$LINTOCAML_PATHS"
 
         if [[ ${#paths[@]} -eq 0 ]]; then
-          echo "lintml: the paths input must name at least one directory" >&2
+          echo "lintocaml: the paths input must name at least one directory" >&2
           exit 2
         fi
 
-        opam exec -- lintml --no-color --format sarif --fail-on never \
-          --profile "$LINTML_PROFILE" -- "${paths[@]}" > lintml.sarif
+        opam exec -- lintocaml --no-color --format sarif --fail-on never \
+          --profile "$LINTOCAML_PROFILE" -- "${paths[@]}" > lintocaml.sarif
 
         status=0
-        opam exec -- lintml --no-color --fail-on "$LINTML_FAIL_ON" \
-          --profile "$LINTML_PROFILE" -- "${paths[@]}" || status=$?
+        opam exec -- lintocaml --no-color --fail-on "$LINTOCAML_FAIL_ON" \
+          --profile "$LINTOCAML_PROFILE" -- "${paths[@]}" || status=$?
         echo "status=$status" >> "$GITHUB_OUTPUT"
 
     - name: Upload SARIF
-      if: always() && inputs.upload-sarif == 'true' && hashFiles('lintml.sarif') != ''
+      if: always() && inputs.upload-sarif == 'true' && hashFiles('lintocaml.sarif') != ''
       uses: github/codeql-action/upload-sarif@v4
       with:
-        sarif_file: lintml.sarif
+        sarif_file: lintocaml.sarif
 
     - name: Fail the job when findings exceed the threshold
       if: always() && steps.lint.outputs.status != '' && steps.lint.outputs.status != '0'
       shell: bash
       env:
-        LINTML_STATUS: ${{ steps.lint.outputs.status }}
-      run: exit "$LINTML_STATUS"
+        LINTOCAML_STATUS: ${{ steps.lint.outputs.status }}
+      run: exit "$LINTOCAML_STATUS"
