@@ -1,5 +1,5 @@
 name: "lintocaml"
-description: "Lint an OCaml project and upload the findings to GitHub code scanning"
+description: "Lint an OCaml project from its typed AST, fail at the severity you choose, and upload findings to code scanning"
 author: "at649"
 
 branding:
