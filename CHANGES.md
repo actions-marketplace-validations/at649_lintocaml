@@ -1,5 +1,10 @@
 # Changes
 
+## 0.1.4
+
+- Corrected the sample output in the README: a run prints "0 hints across 12
+  files", never "0 hint across 12 file(s)".
+
 ## 0.1.3
 
 - The fixture suite no longer shells out to `python3`. The opam builders do
