@@ -112,7 +112,8 @@ let () =
         (diagnostics ());
       let overlaps =
         Hashtbl.fold
-          (fun k rules acc -> if List.length rules > 1 then (k, rules) :: acc else acc)
+          (fun k rules acc ->
+            if List.compare_length_with rules 1 > 0 then (k, rules) :: acc else acc)
           table []
       in
       List.iter
