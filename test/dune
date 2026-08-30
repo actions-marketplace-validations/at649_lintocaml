@@ -1,0 +1,14 @@
+(data_only_dirs fixtures)
+
+(rule
+ (alias runtest)
+ (deps
+  run_fixtures.sh
+  lintml-test.toml
+  ../lintml.toml.example
+  ../bin/main.exe
+  (source_tree fixtures))
+ (action
+  (chdir
+   %{workspace_root}
+   (run ./test/run_fixtures.sh))))

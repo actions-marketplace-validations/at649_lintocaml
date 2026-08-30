@@ -1,0 +1,19 @@
+# Copy to lintml.toml at the project root. lintml searches upward from the
+# directory it runs in, so one file at the top covers the whole tree.
+
+# default   correctness checks and performance problems worth acting on
+# idiomatic adds code-shape advice
+# pedantic  everything
+profile = "default"
+
+# Per-rule settings beat the profile. "off" disables a rule entirely.
+# An unknown rule id is an error, not a silent no-op.
+[rules]
+# physical-eq-on-boxed = "error"
+# partial-function = "hint"
+# length-compare-zero = "off"
+
+# Paths are relative to this file. Later overrides win.
+# [[overrides]]
+# paths = ["vendor/**", "test/**"]
+# profile = "off"

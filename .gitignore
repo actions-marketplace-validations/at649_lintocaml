@@ -1,0 +1,6 @@
+_build/
+_opam/
+*.install
+*.sarif
+.merlin
+.DS_Store

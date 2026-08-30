@@ -1,0 +1,89 @@
+name: "lintml"
+description: "Lint an OCaml project and upload the findings to GitHub code scanning"
+author: "at649"
+
+branding:
+  icon: "check-circle"
+  color: "orange"
+
+inputs:
+  paths:
+    description: "Directories to scan, one per line"
+    required: false
+    default: "_build"
+  profile:
+    description: "default | idiomatic | pedantic"
+    required: false
+    default: "default"
+  fail-on:
+    description: "error | warning | hint | never"
+    required: false
+    default: "error"
+  build:
+    description: "Run 'dune build @check' before linting. Disable if the workflow already built the project."
+    required: false
+    default: "true"
+  upload-sarif:
+    description: "Upload results to GitHub code scanning. Requires security-events: write."
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install lintml
+      shell: bash
+      run: |
+        opam pin add --no-action --yes lintml "$GITHUB_ACTION_PATH"
+        opam install --yes lintml
+
+    - name: Build compiler artifacts
+      if: inputs.build == 'true'
+      shell: bash
+      run: opam exec -- dune build @check
+
+    - name: Run lintml
+      id: lint
+      shell: bash
+      env:
+        LINTML_PATHS: ${{ inputs.paths }}
+        LINTML_PROFILE: ${{ inputs.profile }}
+        LINTML_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        set -uo pipefail
+        paths=()
+        while IFS= read -r path; do
+          if [[ -n "$path" ]]; then
+            paths+=("$path")
+          fi
+        done <<< "$LINTML_PATHS"
+
+        if [[ ${#paths[@]} -eq 0 ]]; then
+          echo "lintml: the paths input must name at least one directory" >&2
+          exit 2
+        fi
+
+        opam exec -- lintml --no-color --format sarif --fail-on never \
+          --profile "$LINTML_PROFILE" -- "${paths[@]}" > lintml.sarif
+
+        # GitHub runs this shell with -e, so a non-zero lintml would kill the
+        # step before the status is recorded. Capture it and let the step
+        # succeed; the threshold is enforced by a later step, after the SARIF
+        # has been uploaded.
+        status=0
+        opam exec -- lintml --no-color --fail-on "$LINTML_FAIL_ON" \
+          --profile "$LINTML_PROFILE" -- "${paths[@]}" || status=$?
+        echo "status=$status" >> "$GITHUB_OUTPUT"
+
+    - name: Upload SARIF
+      if: always() && inputs.upload-sarif == 'true' && hashFiles('lintml.sarif') != ''
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: lintml.sarif
+
+    - name: Fail the job when findings exceed the threshold
+      if: always() && steps.lint.outputs.status != '' && steps.lint.outputs.status != '0'
+      shell: bash
+      env:
+        LINTML_STATUS: ${{ steps.lint.outputs.status }}
+      run: exit "$LINTML_STATUS"

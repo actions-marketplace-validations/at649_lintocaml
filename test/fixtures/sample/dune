@@ -1,0 +1,3 @@
+(executable
+ (name sample)
+ (flags (:standard -w -a)))

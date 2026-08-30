@@ -1,0 +1,59 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Without this every push to a PR branch leaves the previous run burning
+# minutes to produce a result nobody will read.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: no job here writes to the repository.
+permissions:
+  contents: read
+
+jobs:
+  # Formatting and the self-lint do not vary by compiler, so they run once
+  # rather than once per matrix leg.
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5.2.x"
+      - run: opam install . --deps-only --with-test --with-dev-setup
+      - run: opam exec -- dune build @fmt
+      - name: lintml must be clean on its own source
+        run: |
+          opam exec -- dune build @check
+          opam exec -- dune exec -- lintml --no-color --fail-on hint \
+            _build/default/lib _build/default/bin
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        # compiler-libs has no stable API. This matrix is the only evidence
+        # that the cppo isolation in tast_iface.ml actually holds.
+        ocaml: ["5.2.x", "5.3.x", "5.4.x", "5.5.x"]
+        os: [ubuntu-latest]
+        # macOS minutes cost 10x, so portability is spot-checked on the newest
+        # compiler rather than across the whole matrix.
+        include:
+          - { ocaml: "5.5.x", os: macos-latest }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ matrix.ocaml }}
+      - run: opam install . --deps-only --with-test
+      - run: opam exec -- dune build @all
+      - run: opam exec -- dune runtest

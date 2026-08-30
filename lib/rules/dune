@@ -1,0 +1,3 @@
+(library
+ (name lintml_rules)
+ (libraries lintml_engine))

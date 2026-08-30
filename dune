@@ -1,0 +1,13 @@
+(rule
+ (alias lint)
+ (deps
+  (alias_rec check)
+  bin/main.exe)
+ (action
+  (run
+   %{exe:bin/main.exe}
+   --no-color
+   --fail-on
+   warning
+   %{env:DUNE_SOURCEROOT=.}/_build/%{context_name}/lib
+   %{env:DUNE_SOURCEROOT=.}/_build/%{context_name}/bin)))
