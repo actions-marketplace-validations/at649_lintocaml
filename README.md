@@ -18,7 +18,7 @@ src/scan.ml:6:34: warning: List.length is O(n); comparing it to 0 walks the whol
   hint: compare against the empty list: `l = []`
   rule: length-compare-zero
 
-summary: 1 error, 1 warning, 0 hint across 12 file(s)
+summary: 1 error, 1 warning, 0 hints across 12 files
 ```
 
 Requires OCaml 5.2 to 5.5.
