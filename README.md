@@ -33,10 +33,10 @@ variable rather than a known one, the rule says nothing rather than guess.
 
 ## Install
 
-Until the opam release lands, pin the repository:
+Until the opam release lands, pin the tag:
 
 ```sh
-opam pin add lintocaml https://github.com/at649/lintocaml.git
+opam pin add lintocaml https://github.com/at649/lintocaml.git#v0.1.0
 ```
 
 From a clone instead:
@@ -170,7 +170,7 @@ steps:
   - uses: ocaml/setup-ocaml@v3
     with:
       ocaml-compiler: "5.5.x"
-  - uses: at649/lintocaml@main
+  - uses: at649/lintocaml@v0.1.0
     with:
       profile: default
       fail-on: error
