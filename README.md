@@ -36,7 +36,7 @@ variable rather than a known one, the rule says nothing rather than guess.
 Until the opam release lands, pin the tag:
 
 ```sh
-opam pin add lintml https://github.com/at649/lintml.git#v0.1.1
+opam pin add lintml https://github.com/at649/lintml.git#v0.1.2
 ```
 
 From a clone instead:
@@ -166,7 +166,7 @@ steps:
   - uses: ocaml/setup-ocaml@v3
     with:
       ocaml-compiler: "5.5.x"
-  - uses: at649/lintml@v0.1.1
+  - uses: at649/lintml@v0.1.2
     with:
       profile: default
       fail-on: error
