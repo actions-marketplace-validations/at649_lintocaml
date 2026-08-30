@@ -19,7 +19,10 @@ TEST_CONFIG="$ROOT/test/lintml-test.toml"
 TEMP_DIRS=()
 
 cleanup() {
-  for directory in "${TEMP_DIRS[@]}"; do
+  # Guarded because set -u makes an empty array expansion fatal on bash 3.2,
+  # which is what macOS ships. Without it, any failure before the first
+  # mktemp -d reports "unbound variable" instead of the real problem.
+  for directory in ${TEMP_DIRS+"${TEMP_DIRS[@]}"}; do
     rm -rf -- "$directory"
   done
 }

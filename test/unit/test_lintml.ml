@@ -414,6 +414,7 @@ let () =
           Alcotest.test_case "globstar" `Quick test_glob_globstar;
           Alcotest.test_case "pathological backtracking" `Quick test_glob_pathological;
           Alcotest.test_case "path normalisation" `Quick test_glob_normalises;
+          Alcotest.test_case "path matching" `Quick test_glob_matching;
         ] );
       ( "config",
         [
@@ -437,7 +438,6 @@ let () =
           Alcotest.test_case "comments inside strings" `Quick test_comments_inside_strings;
           Alcotest.test_case "invalid path arrays" `Quick test_invalid_path_arrays;
         ] );
-      ("globs", [ Alcotest.test_case "path matching" `Quick test_glob_matching ]);
       ( "paths",
         [
           Alcotest.test_case "stdlib prefix" `Quick test_path_stdlib_prefix;
