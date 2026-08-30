@@ -1,5 +1,9 @@
 # lintocaml
 
+[![CI](https://github.com/at649/lintocaml/actions/workflows/checks.yml/badge.svg)](https://github.com/at649/lintocaml/actions/workflows/checks.yml)
+[![GitHub Marketplace](https://img.shields.io/badge/marketplace-lintocaml-blue?logo=github)](https://github.com/marketplace/actions/lintocaml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 An OCaml linter that works from the typed AST. It reads the `.cmt` files your
 build produces, so rules see resolved names and real types: `a == b` on two
 strings is reported, `a == b` on two ints is not.
