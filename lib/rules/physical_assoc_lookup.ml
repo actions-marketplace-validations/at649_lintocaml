@@ -28,9 +28,13 @@ let structural_name callee =
   | "List.remove_assq" -> "List.remove_assoc"
   | other -> other
 
+(* All four take the key first and the list second. Matching the pair exactly
+   rather than [key :: _] matters because labelled arguments never reach a rule:
+   on [List.assq ~key:k l] the list would slide into the key position, and a
+   list is boxed, so the rule would report the list as the key. *)
 let check (expression : Expr_view.t) =
   match expression.desc with
-  | Apply { callee = Some callee; args = key :: _ }
+  | Apply { callee = Some callee; args = [ key; _ ] }
     when path_is callee physical_lookups && key.ty = Boxed ->
       [
         Rule.finding ~loc:expression.loc

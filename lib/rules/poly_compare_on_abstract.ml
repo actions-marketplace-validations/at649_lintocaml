@@ -39,9 +39,18 @@ let check (e : Expr_view.t) =
               "polymorphic comparison bypasses the semantics of this abstract type";
           ]
       | Immediate | Boxed | Functional | Unknown_class -> [])
-  | Apply { callee = Some callee; args = value :: _ }
-    when path_is callee [ "Stdlib.Hashtbl.hash"; "Stdlib.Hashtbl.seeded_hash" ]
-         && value.ty = Abstract ->
+  (* [seeded_hash] takes the seed first, so the hashed value is the second
+     argument, not the first. Matching both shapes as [value :: _] inspected
+     the seed and meant the rule never fired for [seeded_hash] at all. *)
+  | Apply { callee = Some callee; args = [ value ] }
+    when path_is callee [ "Stdlib.Hashtbl.hash" ] && value.ty = Abstract ->
+      [
+        Rule.finding ~loc:e.loc
+          ~suggestion:"use a hash function exposed by this type's module"
+          "polymorphic hashing depends on the representation of this abstract type";
+      ]
+  | Apply { callee = Some callee; args = [ _seed; value ] }
+    when path_is callee [ "Stdlib.Hashtbl.seeded_hash" ] && value.ty = Abstract ->
       [
         Rule.finding ~loc:e.loc
           ~suggestion:"use a hash function exposed by this type's module"

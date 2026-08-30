@@ -154,6 +154,9 @@ expect negative-size 122
 expect_rule_clean negative-size 123 "a dynamic collection size may be valid"
 expect_rule_clean negative-size 390 \
   "a labelled length leaves the fill value in first position"
+expect poly-compare-on-abstract 395
+expect_rule_clean physical-assoc-lookup 409 \
+  "a labelled key leaves the list in first position"
 expect boolean-comparison 124
 expect_rule_clean boolean-comparison 125 "a bare boolean needs no simplification"
 expect double-negation 126

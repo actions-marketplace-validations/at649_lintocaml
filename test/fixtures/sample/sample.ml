@@ -388,3 +388,22 @@ module Array = struct
 end
 
 let labelled_fill_value = Array.create ~len:8 (-1)
+
+(* poly-compare-on-abstract: seeded_hash takes the seed first, so the hashed
+   value is the second argument *)
+let seeded_hash_abstract (formatter : Format.formatter) =
+  Hashtbl.seeded_hash 0 formatter
+
+(* physical-assoc-lookup: a labelled key leaves the list in first position, and
+   a list is boxed, so the rule must not read it as the key *)
+module Keyed_list = struct
+  let assq ~key l = Stdlib.List.assq key l
+end
+
+module List = struct
+  include Stdlib.List
+
+  let assq ~key l = Keyed_list.assq ~key l
+end
+
+let labelled_assq_key = List.assq ~key:"k" [ ("k", 1) ]
