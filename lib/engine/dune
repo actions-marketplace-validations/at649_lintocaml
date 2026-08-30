@@ -1,6 +1,11 @@
+; Only tast_iface.ml carries cppo directives, for the 5.2-5.5 AST differences.
+; Scoping the preprocessor to it keeps the other seven modules off that path.
+
 (library
  (name lintml_engine)
  (preprocess
-  (action
-   (run %{bin:cppo} -V OCAML:%{ocaml_version} %{input-file})))
+  (per_module
+   ((action
+     (run %{bin:cppo} -V OCAML:%{ocaml_version} %{input-file}))
+    tast_iface)))
  (libraries compiler-libs.common fmt))
