@@ -212,9 +212,8 @@ It does not track values, so `List.nth l (Random.int (List.length l))` is
 reported even though it cannot fail. It does understand a `[]` match arm, a
 `try` catching the exception, and `if List.length l > n`.
 
-It never sees surface syntax. `fun x -> match x with` and `function` are the
-same typed node, as are `a.(i)` and `Array.get a i`, so rules about formatting
-or spelling cannot be written. See CONTRIBUTING.
+It never sees surface syntax. `a.(i)` and `Array.get a i` are the same typed
+node, so rules about formatting or spelling cannot be written. See CONTRIBUTING.
 
 ## Contributing
 

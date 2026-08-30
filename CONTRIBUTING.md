@@ -70,16 +70,22 @@ one should decline — otherwise one line draws two findings. See
 ## What the typed AST cannot tell you
 
 `.cmt` files record the typed tree, and the compiler has already normalised
-some distinctions away. `fun x -> match x with` and `function` are the same
-node. So are `a.(i)` and `Array.get a i`. Parenthesisation, comments and
-formatting are gone entirely.
+some distinctions away. `a.(i)` and `Array.get a i` are the same node.
+Parenthesisation, comments and formatting are gone entirely.
 
 Rules that depend on any of that need a parsetree pass, which does not exist.
 Do not write one against the typed AST hoping it will work.
 
+`function` is the exception, and not in a good way. Since 5.2 the compiler
+distinguishes `Tfunction_body` from `Tfunction_cases`, and `Tast_iface` only
+converts the first, so `function x -> g x` arrives as `Other` while the
+identical `fun x -> g x` arrives as `Function`. Every rule matching on
+`Function` therefore misses the `function` form. Converting `Tfunction_cases`
+would close that, and is the obvious next piece of engine work.
+
 ## False positives found in the field
 
-Neither of these is a rule bug. In both the code is genuinely what the rule
+None of these is a rule bug. In each the code is genuinely what the rule
 describes and the author meant it.
 
 QCheck properties like `fun l -> List.rev (List.rev l) = l` are exactly the
@@ -88,6 +94,12 @@ test. Exclude test directories with a path override.
 
 `List.nth l (Random.int (List.length l))` cannot go out of range, but proving
 it needs value tracking that lintml does not do.
+
+`float_of_int (Sys.word_size / 8)` in the stdlib's `gc.ml` divides exactly,
+because a word is 32 or 64 bits, so `truncated-int-division` has nothing to
+truncate. Same shape as the case above: knowing it is exact means knowing the
+value. It fired twice across an entire opam switch, which is the sort of rate
+that argues for leaving the rule alone rather than guessing.
 
 Three guards in `tast_iface.ml` do suppress provably safe partial calls, and
 each checks the specific fact rather than spotting something nearby: an
