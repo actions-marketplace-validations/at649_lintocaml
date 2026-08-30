@@ -66,10 +66,6 @@ runs:
         opam exec -- lintml --no-color --format sarif --fail-on never \
           --profile "$LINTML_PROFILE" -- "${paths[@]}" > lintml.sarif
 
-        # GitHub runs this shell with -e, so a non-zero lintml would kill the
-        # step before the status is recorded. Capture it and let the step
-        # succeed; the threshold is enforced by a later step, after the SARIF
-        # has been uploaded.
         status=0
         opam exec -- lintml --no-color --fail-on "$LINTML_FAIL_ON" \
           --profile "$LINTML_PROFILE" -- "${paths[@]}" || status=$?
