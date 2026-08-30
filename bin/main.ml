@@ -33,9 +33,7 @@ let absolute_path path =
 let find_config_file roots =
   let rec search directory =
     let toml = Filename.concat directory "lintml.toml" in
-    let legacy = Filename.concat directory "lintml.conf" in
     if Sys.file_exists toml then Some toml
-    else if Sys.file_exists legacy then Some legacy
     else
       let parent = Filename.dirname directory in
       if String.equal parent directory then None else search parent

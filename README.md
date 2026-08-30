@@ -31,7 +31,15 @@ The default profile is bugs and expensive mistakes. Style advice lives in
 Rules stay quiet when they cannot prove what they would claim. If a type is a
 variable rather than a known one, the rule says nothing rather than guess.
 
-## Install from source
+## Install
+
+Until the opam release lands, pin the tag:
+
+```sh
+opam pin add lintml https://github.com/at649/lintml.git#v0.1.1
+```
+
+From a clone instead:
 
 ```sh
 opam install . --deps-only --with-test
@@ -39,8 +47,7 @@ opam exec -- dune build @install
 opam pin add --yes lintml.dev .
 ```
 
-Until the first opam release is accepted, pinning the repository is the
-supported installation path. To work on lintml without installing it, use
+To work on lintml without installing it, use
 `opam exec -- dune exec lintml -- --help`.
 
 ## Getting started
@@ -159,7 +166,7 @@ steps:
   - uses: ocaml/setup-ocaml@v3
     with:
       ocaml-compiler: "5.5.x"
-  - uses: at649/lintml@v0
+  - uses: at649/lintml@v0.1.1
     with:
       profile: default
       fail-on: error
