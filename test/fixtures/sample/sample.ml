@@ -407,3 +407,27 @@ module List = struct
 end
 
 let labelled_assq_key = List.assq ~key:"k" [ ("k", 1) ]
+
+(* compare-result-equality: every exact non-zero value violates the contract *)
+let cmp_eq_two a b = compare a b = 2
+let cmp_eq_negative_two a b = -2 = compare a b
+
+(* A guarded handler may decline the exception, and deferred code runs after
+   its surrounding try expression has returned. *)
+let conditionally_handled_find condition table key =
+  try Hashtbl.find table key with Not_found when condition -> 0
+
+let deferred_find table key =
+  try (fun () -> Hashtbl.find table key) with Not_found -> fun () -> 0
+
+let lazy_find table key =
+  try lazy (Hashtbl.find table key) with Not_found -> lazy 0
+
+let handled_or_pattern table key =
+  try Hashtbl.find table key with (Not_found | Exit) -> 0
+
+(* Subtree rules must see exception-handler bodies. *)
+let concat_in_handler parts =
+  List.fold_left
+    (fun acc part -> try acc with Not_found -> acc ^ part)
+    "" parts

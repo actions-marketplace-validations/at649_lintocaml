@@ -45,11 +45,16 @@ let pp_diagnostic cache ppf (d : Diagnostic.t) =
   Fmt.pf ppf "%a: %s: %s@." Loc.pp d.loc (severity_tag d.severity) d.message;
   (match source_line cache d.loc.file d.loc.line with
   | Some line ->
+      let column = max 0 d.loc.col in
       let caret_len =
-        if d.loc.end_line = d.loc.line then max 1 (d.loc.end_col - d.loc.col) else 1
+        if d.loc.end_line <> d.loc.line then 1
+        else
+          let start = min column (String.length line) in
+          let available = max 1 (String.length line - start) in
+          if d.loc.end_col <= column then 1 else min available (d.loc.end_col - column)
       in
       Fmt.pf ppf "  %s %s@." (dim "|") line;
-      Fmt.pf ppf "  %s %s%s@." (dim "|") (caret_indent line d.loc.col)
+      Fmt.pf ppf "  %s %s%s@." (dim "|") (caret_indent line column)
         (sgr "1;31" (String.make caret_len '^'))
   | None -> ());
   (match d.suggestion with

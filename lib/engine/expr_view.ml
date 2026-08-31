@@ -68,6 +68,7 @@ and handler = {
   reraises : bool;
   protects_fatal : bool;
   h_loc : Loc.t;
+  h_body : t;
 }
 
 (* [List.length] surfaces as "Stdlib.List.length" or "List.length" depending on
@@ -135,7 +136,7 @@ let children expr =
   match expr.desc with
   | Construct { args; _ } | Apply { args; _ } -> args
   | If { cond; then_; else_ } -> cond :: then_ :: Option.to_list else_
-  | Try { body; _ } -> [ body ]
+  | Try { body; handlers } -> body :: List.map (fun handler -> handler.h_body) handlers
   | Match { scrutinee; arms; _ } -> scrutinee :: arms
   | Bool_match { scrutinee; when_true; when_false } ->
       [ scrutinee; when_true; when_false ]

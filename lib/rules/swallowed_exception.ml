@@ -1,11 +1,10 @@
 open Lintocaml_engine
 
 let docs =
-  {|`try ... with _ -> ...` catches every exception, including ones that should
-never be caught: `Out_of_memory`, `Stack_overflow`, `Sys.Break` from Ctrl-C, and
-the cancellation exceptions used by Lwt and Eio. Swallowing those turns a clean
-failure into a hang or a silent wrong answer, and hides the original error from
-whoever debugs it later.
+  {|`try ... with _ -> ...` catches every exception, including runtime failures
+that ordinary recovery code should not consume: `Out_of_memory`,
+`Stack_overflow`, and `Sys.Break` from Ctrl-C. It can also hide library-specific
+control-flow exceptions that the handler never intended to intercept.
 
 Match the exceptions you actually expect: `with Not_found -> ...`.
 
@@ -41,7 +40,7 @@ let check (e : Expr_view.t) =
                   Rule.finding ~loc:handler.h_loc
                     ~suggestion:"match the exceptions you expect, or re-raise the rest"
                     "catch-all handler also swallows Out_of_memory, Stack_overflow and \
-                     cancellation";
+                     Sys.Break";
                 ]
               else []
             in

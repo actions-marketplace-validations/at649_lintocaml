@@ -3,8 +3,8 @@ open Expr_view
 
 let docs =
   {|`List.nth` raises `Invalid_argument` on a negative index, and
-`List.nth_opt` raises rather than returning `None`. A negative literal index is
-therefore never reachable code: it always raises.
+`List.nth_opt` raises rather than returning `None`. A call with a negative
+literal index therefore always raises.
 
 This usually appears when an index is computed by subtraction and the guard is
 missing, or when someone reaches for the Python convention where -1 means the

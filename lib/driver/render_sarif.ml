@@ -46,7 +46,9 @@ let result_of (d : Diagnostic.t) =
                         `Assoc
                           [
                             ("startLine", `Int d.loc.line);
-                            ("startColumn", `Int (d.loc.col + 1));
+                            ("startColumn", `Int (Loc.one_based_column d.loc.col));
+                            ("endLine", `Int d.loc.end_line);
+                            ("endColumn", `Int (Loc.one_based_column d.loc.end_col));
                           ] );
                     ] );
               ];
@@ -82,9 +84,13 @@ let result_of (d : Diagnostic.t) =
                                             `Assoc
                                               [
                                                 ("startLine", `Int d.loc.line);
-                                                ("startColumn", `Int (d.loc.col + 1));
+                                                ( "startColumn",
+                                                  `Int (Loc.one_based_column d.loc.col) );
                                                 ("endLine", `Int d.loc.end_line);
-                                                ("endColumn", `Int (d.loc.end_col + 1));
+                                                ( "endColumn",
+                                                  `Int
+                                                    (Loc.one_based_column d.loc.end_col)
+                                                );
                                               ] );
                                           ( "insertedContent",
                                             `Assoc [ ("text", `String replacement) ] );
@@ -125,7 +131,10 @@ let suppressed_result (suppressed : Analyse.suppressed) =
                         `Assoc
                           [
                             ("startLine", `Int suppressed.loc.line);
-                            ("startColumn", `Int (suppressed.loc.col + 1));
+                            ("startColumn", `Int (Loc.one_based_column suppressed.loc.col));
+                            ("endLine", `Int suppressed.loc.end_line);
+                            ( "endColumn",
+                              `Int (Loc.one_based_column suppressed.loc.end_col) );
                           ] );
                     ] );
               ];
@@ -151,18 +160,24 @@ let render ~version ~rules ~report_suppressed (o : Analyse.outcome) =
                   `Assoc
                     [
                       ( "driver",
+                        let version_fields =
+                          [ ("version", `String version) ]
+                          @
+                          if String.equal version "dev" then []
+                          else [ ("semanticVersion", `String version) ]
+                        in
                         `Assoc
-                          [
-                            ("name", `String "lintocaml");
-                            ("version", `String version);
-                            ("semanticVersion", `String version);
-                            ( "informationUri",
-                              `String "https://github.com/at649/lintocaml" );
-                            ("rules", `List (List.map rule_descriptor rules));
-                          ] );
+                          ([ ("name", `String "lintocaml") ]
+                          @ version_fields
+                          @ [
+                              ( "informationUri",
+                                `String "https://github.com/at649/lintocaml" );
+                              ("rules", `List (List.map rule_descriptor rules));
+                            ]) );
                     ] );
                 ("results", `List results);
               ];
           ] );
     ]
   |> Yojson.Safe.pretty_to_string
+  |> fun json -> json ^ "\n"

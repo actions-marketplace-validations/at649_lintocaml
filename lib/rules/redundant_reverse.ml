@@ -7,7 +7,9 @@ and allocating the list two times. This is occasionally left behind after a
 pipeline is refactored.
 
 Use the original list expression directly. The rewrite preserves structural
-content and all evaluation of the list expression.|}
+content and all evaluation of the list expression, but not the fresh list
+allocation. Keep the reversals when a test is deliberately checking that
+allocation behavior.|}
 
 let check (expression : Expr_view.t) =
   match expression.desc with

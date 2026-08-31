@@ -37,10 +37,16 @@ variable rather than a known one, the rule says nothing rather than guess.
 
 ## Install
 
-Until the opam release lands, pin the tag:
+Install from opam once the first release is available:
 
 ```sh
-opam pin add lintocaml https://github.com/at649/lintocaml.git#v0.1.0
+opam install lintocaml
+```
+
+Until then, pin the repository:
+
+```sh
+opam pin add lintocaml https://github.com/at649/lintocaml.git
 ```
 
 From a clone instead:
@@ -60,11 +66,11 @@ lintocaml reads compiler artifacts, so build the project before linting it. Exit
 code 3 means no artifacts were found.
 
 ```sh
-dune build @check        # produces .cmt files
-lintocaml                   # lints _build
+dune build @check  # produces .cmt files
+lintocaml           # lints _build
 ```
 
-| Command | |
+| Command | Purpose |
 |---|---|
 | `lintocaml lint PATH` | lint a specific directory |
 | `lintocaml list-rules` | rules active in a profile |
@@ -72,7 +78,7 @@ lintocaml                   # lints _build
 | `lintocaml --fix` | apply the mechanically safe fixes |
 | `lintocaml --version` | print the installed version |
 
-| Flag | |
+| Flag | Effect |
 |---|---|
 | `--profile default\|idiomatic\|pedantic` | which rules run |
 | `--fail-on error\|warning\|hint\|never` | exit-code threshold |
@@ -86,20 +92,20 @@ representative sample:
 
 **Correctness** — on by default
 
-| Rule | |
+| Rule | What it reports |
 |---|---|
 | `physical-eq-on-boxed` | `==` on strings, lists or tuples compares allocations, not contents |
 | `poly-compare-on-function` | structural comparison on a function raises at runtime |
-| `compare-result-equality` | `compare a b = 1` is false for most inputs; only the sign is specified |
-| `swallowed-exception` | `try ... with _ ->` also eats `Out_of_memory` and cancellation |
+| `compare-result-equality` | `compare a b = 1` relies on an exact result that the API does not promise |
+| `swallowed-exception` | `try ... with _ ->` also catches fatal runtime exceptions |
 | `partial-function` | `List.hd`, `Option.get`, `Hashtbl.find` where a total version exists |
-| `ignored-promise` | a discarded `Lwt.t` or `Eio` promise loses its work and its failure |
+| `discarding-extractor` | `Result.get_ok` or `Result.get_error` discards useful failure context |
+| `ignored-promise` | a discarded `Lwt.t` or `Eio` promise loses failure and cancellation handling |
 | `division-by-zero` | literal `/ 0` or `mod 0` |
-| `mutable-hashtable-key` | a key that can change under the table |
 
 **Performance** — on by default
 
-| Rule | |
+| Rule | What it reports |
 |---|---|
 | `length-compare-zero` | `List.length l = 0` walks the list to answer an O(1) question |
 | `quadratic-concat` | building a string with `^` in a fold |
@@ -111,8 +117,9 @@ representative sample:
 **Idiom** — `--profile idiomatic`
 
 `redundant-if-bool`, `match-bool`, `double-negation`, `negated-condition`,
-`identity-map`, `redundant-fun-wrapper`, `option-match-to-combinator` and
-others. Useful on a codebase you are cleaning up, noise on one you are not.
+`identity-map`, `redundant-fun-wrapper`, `option-match-to-combinator`,
+`physical-assoc-lookup`, and `truncated-int-division` are opt-in. The pedantic
+profile also checks mutable hash-table keys and generic `failwith` calls.
 
 ## Configuration
 
@@ -164,17 +171,20 @@ again.
 
 ## CI
 
+After tagging the first release, add the action to a workflow:
+
 ```yaml
 permissions:
+  actions: read
   contents: read
   security-events: write
 
 steps:
-  - uses: actions/checkout@v6
+  - uses: actions/checkout@v7
   - uses: ocaml/setup-ocaml@v3
     with:
       ocaml-compiler: "5.5.x"
-  - uses: at649/lintocaml@v0.1.0
+  - uses: at649/lintocaml@v0.1.1
     with:
       profile: default
       fail-on: error
@@ -183,6 +193,7 @@ steps:
 The action installs lintocaml in the opam switch created by `setup-ocaml`, builds
 the project, and uploads SARIF so findings appear in code scanning. Set
 `upload-sarif: "false"` if the repository cannot grant `security-events: write`.
+Private and internal repositories also need GitHub Code Security enabled.
 For several scan roots, put one path on each line:
 
 ```yaml
@@ -194,7 +205,7 @@ For several scan roots, put one path on each line:
 
 Exit codes:
 
-| Code | |
+| Code | Meaning |
 |---:|---|
 | 0 | nothing reached `--fail-on` |
 | 1 | findings reached `--fail-on` |

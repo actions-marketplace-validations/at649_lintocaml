@@ -8,11 +8,25 @@ open Expr_view
 let convert_location (location : Location.t) =
   let start = location.loc_start in
   let end_ = location.loc_end in
-  { Loc.file = start.pos_fname;
-    line = start.pos_lnum;
-    col = start.pos_cnum - start.pos_bol;
-    end_line = end_.pos_lnum;
-    end_col = end_.pos_cnum - end_.pos_bol }
+  let column position =
+    let difference =
+      Int64.sub (Int64.of_int position.Lexing.pos_cnum)
+        (Int64.of_int position.pos_bol)
+    in
+    if Int64.compare difference 0L <= 0 then 0
+    else if Int64.compare difference (Int64.of_int max_int) >= 0 then max_int
+    else Int64.to_int difference
+  in
+  let line = max 1 start.pos_lnum in
+  let col = column start in
+  let raw_end_line = max 1 end_.pos_lnum in
+  let raw_end_col = column end_ in
+  let end_line, end_col =
+    if raw_end_line < line || (raw_end_line = line && raw_end_col < col) then
+      (line, col)
+    else (raw_end_line, raw_end_col)
+  in
+  { Loc.file = start.pos_fname; line; col; end_line; end_col }
 
 let immediate_paths =
   [ Predef.path_int; Predef.path_bool; Predef.path_char; Predef.path_unit ]
@@ -371,7 +385,8 @@ let rec convert local_types ~fallback_env (e : Typedtree.expression) : Expr_view
                     protects_fatal =
                       Option.is_none c.c_guard && reraises
                       && pattern_protects_fatal c.c_lhs;
-                    h_loc = convert_location c.c_lhs.pat_loc })
+                    h_loc = convert_location c.c_lhs.pat_loc;
+                    h_body = convert local_types ~fallback_env c.c_rhs })
                 cases }
 #if OCAML_VERSION >= (5, 3, 0)
     | Typedtree.Texp_match (scrutinee, cases, _effect_cases, _) ->
@@ -615,12 +630,14 @@ let iter_structure (str : Typedtree.structure) ~(f : Expr_view.t -> unit) =
      explicitly, so it is not a defect. *)
   let handled_here : (Loc.t, string list) Hashtbl.t = Hashtbl.create 16 in
   let caught_exception_names cases =
-    List.filter_map
+    List.concat_map
       (fun (case : Typedtree.value Typedtree.case) ->
-        match case.c_lhs.pat_desc with
-        | Typedtree.Tpat_construct (_, cd, _, _) -> Some cd.cstr_name
-        | Typedtree.Tpat_any | Typedtree.Tpat_var _ -> Some "_"
-        | _ -> None)
+        if Option.is_some case.c_guard then []
+        else if pattern_catches_all case.c_lhs then [ "_" ]
+        else
+          match pattern_constructors case.c_lhs with
+          | Some names -> String_set.elements names
+          | None -> [])
       cases
   in
   let note_handled (e : Typedtree.expression) =
@@ -637,7 +654,13 @@ let iter_structure (str : Typedtree.structure) ~(f : Expr_view.t -> unit) =
             let key = convert_location inner.exp_loc in
             let existing = Option.value (Hashtbl.find_opt handled_here key) ~default:[] in
             Hashtbl.replace handled_here key (caught @ existing);
-            super.expr self inner
+            (* A function or lazy body runs after the surrounding [try] has
+               returned, so its exceptions are not handled here. Declining to
+               descend can miss an immediately invoked closure, but it cannot
+               hide a genuinely unhandled partial call. *)
+            match inner.exp_desc with
+            | Typedtree.Texp_function _ | Typedtree.Texp_lazy _ -> ()
+            | _ -> super.expr self inner
           in
           let it = { super with expr = mark } in
           it.expr it body
@@ -748,12 +771,11 @@ let iter_structure (str : Typedtree.structure) ~(f : Expr_view.t -> unit) =
   in
   (* Which exception each partial function raises, so the handler has to match. *)
   let raises_of name =
-    match name with
-    | "Stdlib.Hashtbl.find" | "Stdlib.List.assoc" | "Stdlib.List.find"
-    | "Stdlib.List.assq" | "Stdlib.List.memq" ->
+    match Expr_view.strip_stdlib name with
+    | "Hashtbl.find" | "List.assoc" | "List.find" | "List.assq" ->
         Some "Not_found"
-    | "Stdlib.List.hd" | "Stdlib.List.tl" | "Stdlib.List.nth" -> Some "Failure"
-    | "Stdlib.Option.get" | "Stdlib.Result.get_ok" | "Stdlib.Result.get_error" ->
+    | "List.hd" | "List.tl" | "List.nth" -> Some "Failure"
+    | "Option.get" | "Result.get_ok" | "Result.get_error" ->
         Some "Invalid_argument"
     | _ -> None
   in

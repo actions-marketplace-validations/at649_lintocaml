@@ -23,8 +23,7 @@ let offset source line column =
       if line = Array.length source.line_offsets then String.length source.contents
       else source.line_offsets.(line) - 1
     in
-    let value = line_start + column in
-    if value > line_end then None else Some value
+    if column > line_end - line_start then None else Some (line_start + column)
 
 let range source (location : Loc.t) =
   Option.bind (offset source location.line location.col) (fun start ->

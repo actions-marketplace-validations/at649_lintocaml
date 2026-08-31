@@ -7,9 +7,9 @@ byte sequence, or reference is later mutated, its hash and equality behavior
 can change while it remains in the old bucket, making the entry impossible to
 find reliably.
 
-Use an immutable key or take an immutable snapshot before insertion. This rule
-checks insertion and replacement, where the table invariant is established,
-and does not complain merely because mutable values exist elsewhere.|}
+Use an immutable key or take an immutable snapshot before insertion. A mutable
+key is not automatically wrong when the program keeps it stable, so this check
+is reserved for the pedantic profile.|}
 
 let is_known_mutable_key expression =
   List.exists
@@ -34,8 +34,8 @@ let rule : Rule.t =
     id = "mutable-hashtable-key";
     title = "Mutable value used as a hashtable key";
     category = Rule.Correctness;
-    profile = Rule.Default;
-    default_severity = Severity.Warning;
+    profile = Rule.Pedantic;
+    default_severity = Severity.Hint;
     docs;
     check;
   }

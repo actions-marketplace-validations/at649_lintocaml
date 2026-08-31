@@ -2,10 +2,9 @@ open Lintocaml_engine
 open Expr_view
 
 let docs =
-  {|`Obj.magic` tells the compiler to stop checking. Every guarantee OCaml makes
-about the program is void at that point: a wrong cast does not raise, it
-corrupts memory, and the crash surfaces somewhere unrelated with a backtrace
-that points at innocent code.
+  {|`Obj.magic` tells the compiler to stop checking the relationship between two
+types. A wrong cast is not required to fail at the call site; it can violate
+runtime representation assumptions and surface much later in unrelated code.
 
 There are legitimate uses - GADT-free existentials, interfacing with untyped
 runtime data - but they are rare and each one deserves a comment explaining why
@@ -31,8 +30,8 @@ let check (expression : Expr_view.t) =
           ~suggestion:
             "if the cast is genuinely sound, suppress this with a comment saying why"
           (Fmt.str
-             "`%s` bypasses the type system; a wrong cast corrupts memory rather than \
-              raising"
+             "`%s` bypasses the type system and can violate runtime representation \
+              assumptions"
              (strip_stdlib name));
       ]
   | _ -> []

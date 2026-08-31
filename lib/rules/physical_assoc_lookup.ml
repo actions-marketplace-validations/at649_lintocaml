@@ -10,7 +10,8 @@ misses.
 
 Use `List.assoc`, `List.mem` and `List.assoc_opt`, which compare structurally.
 The physical variants are appropriate for interned or unique values, where the
-identity is the point.|}
+identity is the point. Because choosing an `*q` function is often deliberate,
+this check is opt-in rather than a default error.|}
 
 let physical_lookups =
   [
@@ -52,8 +53,8 @@ let rule : Rule.t =
     id = "physical-assoc-lookup";
     title = "Physical-equality lookup with a boxed key";
     category = Rule.Correctness;
-    profile = Rule.Default;
-    default_severity = Severity.Error;
+    profile = Rule.Idiomatic;
+    default_severity = Severity.Hint;
     docs;
     check;
   }

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end fixture test. Every rule is asserted both ways: the case it must
 # report, and the case it must not.
+# Keep running after an assertion fails so one run reports the complete set.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
@@ -36,7 +37,7 @@ OUT=$("$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic --forma
 OUT_DEFAULT=$("$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile default --format json "$FIXTURE/_build")
 fails=0
 
-if echo "$OUT" | "$JSONQ" replacement-metadata; then
+if printf '%s\n' "$OUT" | "$JSONQ" replacement-metadata; then
   echo "  ok       JSON distinguishes safe replacements from advice"
 else
   echo "  WRONG    JSON replacement metadata is incomplete"; fails=$((fails+1))
@@ -55,7 +56,7 @@ expect_exit() {
 }
 
 expect() {
-  if echo "$OUT" | "$JSONQ" has "$1" "$2"; then
+  if printf '%s\n' "$OUT" | "$JSONQ" has "$1" "$2"; then
     echo "  ok       $1 @ $2"
   else
     echo "  MISSING  $1 @ $2"; fails=$((fails+1))
@@ -63,7 +64,7 @@ expect() {
 }
 
 expect_clean() {
-  if echo "$OUT_DEFAULT" | "$JSONQ" line-clean "$1"; then
+  if printf '%s\n' "$OUT_DEFAULT" | "$JSONQ" line-clean "$1"; then
     echo "  ok       $1 clean  ($2)"
   else
     echo "  FALSE+   $1 should be clean  ($2)"; fails=$((fails+1))
@@ -71,7 +72,7 @@ expect_clean() {
 }
 
 expect_rule_clean() {
-  if echo "$OUT" | "$JSONQ" rule-line-clean "$1" "$2"; then
+  if printf '%s\n' "$OUT" | "$JSONQ" rule-line-clean "$1" "$2"; then
     echo "  ok       $1 @ $2 clean  ($3)"
   else
     echo "  FALSE+   $1 should be clean @ $2  ($3)"; fails=$((fails+1))
@@ -79,7 +80,7 @@ expect_rule_clean() {
 }
 
 expect_hint() {
-  if echo "$OUT" | "$JSONQ" suggests "$1" "$2"; then
+  if printf '%s\n' "$OUT" | "$JSONQ" suggests "$1" "$2"; then
     echo "  ok       $1 suggests '$2'"
   else
     echo "  WRONG    $1 should suggest '$2'"; fails=$((fails+1))
@@ -220,7 +221,7 @@ expect_rule_clean invalid-string-bounds 180 "dynamic slice bounds may be valid"
 expect_rule_clean poly-compare-on-float-nan 181 "ordinary IEEE float equality may be intentional"
 
 echo
-echo "new rules:"
+echo "additional rule coverage:"
 expect hashtbl-mem-then-find 223
 expect_rule_clean hashtbl-mem-then-find 224 "find_opt answers membership and value in one lookup"
 expect_rule_clean hashtbl-mem-then-find 227 "a lookup of a different table is a distinct operation"
@@ -242,7 +243,7 @@ expect partial-function 251
 
 echo
 echo "safe fixes:"
-FIX_PROJECT=$(mktemp -d)
+FIX_PROJECT=$(mktemp -d) || { echo "FAIL: cannot create a temporary directory"; exit 1; }
 TEMP_DIRS+=("$FIX_PROJECT")
 cp -R "$ROOT/test/fixtures/fix/." "$FIX_PROJECT/"
 ( cd "$FIX_PROJECT" && dune build @check 2>/dev/null ) ||
@@ -261,7 +262,7 @@ else
   diff -u <(printf '%s\n' "$EXPECTED_FIX") <(printf '%s\n' "$ACTUAL_FIX") || true
 fi
 
-STALE_PROJECT=$(mktemp -d)
+STALE_PROJECT=$(mktemp -d) || { echo "FAIL: cannot create a temporary directory"; exit 1; }
 TEMP_DIRS+=("$STALE_PROJECT")
 cp -R "$ROOT/test/fixtures/fix/." "$STALE_PROJECT/"
 # dune serves the fixtures read-only, and cp preserves that.
@@ -284,7 +285,7 @@ else
   echo "  WRONG    changed source using stale compiler locations"; fails=$((fails+1))
 fi
 
-if echo "$OUT" | "$JSONQ" has-in-file disabled-all-warnings sample.mli 1; then
+if printf '%s\n' "$OUT" | "$JSONQ" has-in-file disabled-all-warnings sample.mli 1; then
   echo "  ok       analyses .cmti interface attributes"
 else
   echo "  MISSING  disabled-all-warnings in sample.mli"; fails=$((fails+1))
@@ -305,10 +306,10 @@ expect_exit 0 "$LINTOCAML" --no-color --fail-on never "$FIXTURE/_build"
 DEFAULT_RULES=$("$LINTOCAML" list-rules)
 IDIOMATIC_RULES=$("$LINTOCAML" list-rules --profile idiomatic)
 PEDANTIC_RULES=$("$LINTOCAML" list-rules --profile pedantic)
-if ! echo "$DEFAULT_RULES" | grep -q redundant-if-bool \
-   && echo "$IDIOMATIC_RULES" | grep -q redundant-if-bool \
-   && ! echo "$IDIOMATIC_RULES" | grep -q generic-failure \
-   && echo "$PEDANTIC_RULES" | grep -q generic-failure; then
+if ! printf '%s\n' "$DEFAULT_RULES" | grep -q redundant-if-bool \
+   && printf '%s\n' "$IDIOMATIC_RULES" | grep -q redundant-if-bool \
+   && ! printf '%s\n' "$IDIOMATIC_RULES" | grep -q generic-failure \
+   && printf '%s\n' "$PEDANTIC_RULES" | grep -q generic-failure; then
   echo "  ok       list-rules filters by profile"
 else
   echo "  WRONG    list-rules profile filtering failed"; fails=$((fails+1))
@@ -318,7 +319,7 @@ DISCOVERED=$(
   cd "$FIXTURE" &&
   "$LINTOCAML" --no-color --profile pedantic --format json _build
 )
-if echo "$DISCOVERED" | "$JSONQ" no-diagnostics; then
+if printf '%s\n' "$DISCOVERED" | "$JSONQ" no-diagnostics; then
   echo "  ok       discovers config upward and applies path override"
 else
   echo "  WRONG    discovered config did not suppress fixture"; fails=$((fails+1))
@@ -328,7 +329,7 @@ EXPLICIT_RELATIVE=$(
   cd "$FIXTURE" &&
   "$LINTOCAML" --no-color --config ./lintocaml.toml --profile pedantic --format json _build
 )
-if echo "$EXPLICIT_RELATIVE" | "$JSONQ" no-diagnostics; then
+if printf '%s\n' "$EXPLICIT_RELATIVE" | "$JSONQ" no-diagnostics; then
   echo "  ok       anchors an explicit relative config to its real directory"
 else
   echo "  WRONG    relative config path broke path overrides"; fails=$((fails+1))
@@ -338,7 +339,7 @@ DISCOVERED_FROM_ROOT=$(
   cd "${TMPDIR:-/tmp}" &&
   "$LINTOCAML" --no-color --profile pedantic --format json "$FIXTURE/_build"
 )
-if echo "$DISCOVERED_FROM_ROOT" | "$JSONQ" no-diagnostics; then
+if printf '%s\n' "$DISCOVERED_FROM_ROOT" | "$JSONQ" no-diagnostics; then
   echo "  ok       discovers config from an explicit scan root"
 else
   echo "  WRONG    scan-root config discovery failed"; fails=$((fails+1))
@@ -349,8 +350,8 @@ SUPPRESSED=$(
     --report-suppressed --format json \
     "$FIXTURE/_build"
 )
-if echo "$SUPPRESSED" | "$JSONQ" suppressed-reason 101 "allocation identity is intended" &&
-   echo "$SUPPRESSED" | "$JSONQ" suppressed-reason 114 "generated module intentionally checks identity"; then
+if printf '%s\n' "$SUPPRESSED" | "$JSONQ" suppressed-reason 101 "allocation identity is intended" &&
+   printf '%s\n' "$SUPPRESSED" | "$JSONQ" suppressed-reason 114 "generated module intentionally checks identity"; then
   echo "  ok       reports expression and structure suppression reasons"
 else
   echo "  WRONG    suppression audit output is incomplete"; fails=$((fails+1))
@@ -372,7 +373,7 @@ SARIF=$("$LINTOCAML" --no-color --config "$TEST_CONFIG" --profile pedantic --for
 # The expected rule count comes from the registry rather than a literal, so
 # adding a rule does not require editing this assertion.
 RULE_COUNT=$("$LINTOCAML" list-rules --profile pedantic | grep -c .)
-if echo "$SARIF" | "$JSONQ" sarif-structure "$RULE_COUNT"; then
+if printf '%s\n' "$SARIF" | "$JSONQ" sarif-structure "$RULE_COUNT"; then
   echo "  ok       SARIF structure and rule metadata"
 else
   echo "  WRONG    invalid SARIF output"; fails=$((fails+1))
@@ -383,15 +384,17 @@ SARIF_SUPPRESSED=$(
     --report-suppressed --format sarif \
     "$FIXTURE/_build"
 )
-if echo "$SARIF_SUPPRESSED" | "$JSONQ" sarif-suppressions; then
+if printf '%s\n' "$SARIF_SUPPRESSED" | "$JSONQ" sarif-suppressions; then
   echo "  ok       SARIF identifies in-source suppressions"
 else
   echo "  WRONG    invalid SARIF suppression metadata"; fails=$((fails+1))
 fi
 
 echo
-echo "new rules:"
+echo "extended rule coverage:"
 expect compare-result-equality 184
+expect compare-result-equality 412
+expect compare-result-equality 413
 expect_rule_clean compare-result-equality 185 "testing the sign is the correct form"
 expect_rule_clean compare-result-equality 186 "= 0 is the one exact guarantee compare makes"
 
@@ -426,7 +429,7 @@ expect_rule_clean length-compare-zero 216 "exists-via-filter covers this express
 echo
 echo "rule overlap:"
 # Every reported location must be attributable to exactly one rule.
-if echo "$OUT" | "$JSONQ" no-overlap; then
+if printf '%s\n' "$OUT" | "$JSONQ" no-overlap; then
   echo "  ok       no two rules fire on the same location"
 else
   echo "  WRONG    overlapping rules produce duplicate findings"; fails=$((fails+1))
@@ -446,9 +449,6 @@ expect_rule_clean length-of-append 264 "adding the lengths is the suggested form
 
 expect discarding-extractor 267
 expect_rule_clean discarding-extractor 268 "Result.value ~default does not raise"
-# Option.get belongs to partial-function; one expression, one finding.
-expect_rule_clean discarding-extractor 255 "Option.get is covered by partial-function"
-
 echo "safety rules:"
 expect unsafe-cast 271
 expect_rule_clean unsafe-cast 272 "an ordinary conversion is not a cast"
@@ -517,6 +517,13 @@ expect partial-function 365
 expect_rule_clean disabled-all-warnings 7 "the nested signature suppression applies inside the signature"
 expect disabled-all-warnings 10
 
+echo "exception scopes and handler traversal:"
+expect partial-function 418
+expect partial-function 421
+expect partial-function 424
+expect_rule_clean partial-function 427 "an unguarded or-pattern catches Not_found"
+expect quadratic-concat 431
+
 echo "guarded catch-all:"
 expect_rule_clean swallowed-exception 368 "a fatal re-raise precedes the catch-all"
 expect_rule_clean swallowed-exception 371 "the protected catch-all itself stays clean"
@@ -526,16 +533,17 @@ expect swallowed-exception 378
 echo "degraded inputs:"
 # A single unreadable artifact must not suppress the findings from every other
 # file: it is a warning, and the run continues.
-MIXED=$(mktemp -d)
+MIXED=$(mktemp -d) || { echo "FAIL: cannot create a temporary directory"; exit 1; }
+TEMP_DIRS+=("$MIXED")
 cp -R "$FIXTURE/_build" "$MIXED/"
-echo "not a cmt file" > "$MIXED/_build/broken.cmt"
+printf '%s\n' "not a cmt file" > "$MIXED/_build/broken.cmt"
 MIXED_OUT=$("$LINTOCAML" --no-color --fail-on never --format json "$MIXED/_build" 2>"$MIXED/err")
-if echo "$MIXED_OUT" | "$JSONQ" has-diagnostics; then
+if printf '%s\n' "$MIXED_OUT" | "$JSONQ" has-diagnostics; then
   echo "  ok       findings survive an unreadable artifact"
 else
   echo "  WRONG    an unreadable artifact suppressed all findings"; fails=$((fails+1))
 fi
-if echo "$MIXED_OUT" | "$JSONQ" load-error broken.cmt; then
+if printf '%s\n' "$MIXED_OUT" | "$JSONQ" load-error broken.cmt; then
   echo "  ok       JSON reports the unreadable artifact readably"
 else
   echo "  WRONG    load_errors missing or unhelpful in JSON"; fails=$((fails+1))
@@ -548,8 +556,9 @@ fi
 rm -rf "$MIXED"
 
 # When nothing at all could be analysed, that is an error rather than silence.
-ONLYBAD=$(mktemp -d)
-echo "junk" > "$ONLYBAD/x.cmt"
+ONLYBAD=$(mktemp -d) || { echo "FAIL: cannot create a temporary directory"; exit 1; }
+TEMP_DIRS+=("$ONLYBAD")
+printf '%s\n' "junk" > "$ONLYBAD/x.cmt"
 "$LINTOCAML" --no-color "$ONLYBAD" >/dev/null 2>&1
 if [ "$?" -eq 10 ]; then
   echo "  ok       exit 10 when no artifact could be read"
@@ -574,7 +583,7 @@ for file in lib/rules/*.ml; do
   [ "$base" = registry ] && continue
   id=$(grep -oE 'id = "[a-z0-9-]+"' "$file" | head -1 | sed 's/id = "//;s/"//')
   [ -z "$id" ] && continue
-  expected=$(echo "$id" | tr '-' '_')
+  expected=$(printf '%s\n' "$id" | tr '-' '_')
   if [ "$base" != "$expected" ]; then
     echo "  WRONG    $base.ml declares rule '$id' (expected $expected.ml)"
     mismatches=$((mismatches+1))

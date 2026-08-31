@@ -63,11 +63,14 @@ let write_atomic path contents =
     Option.iter (fun path -> try Sys.remove path with Sys_error _ -> ()) !temporary
   in
   try
+    let source_stat = Unix.lstat path in
+    if source_stat.st_kind = Unix.S_LNK then
+      raise (Sys_error "refusing to replace a symbolic link");
     let temporary_path = Filename.temp_file ~temp_dir:directory ".lintocaml-" ".tmp" in
     temporary := Some temporary_path;
     Out_channel.with_open_bin temporary_path (fun channel ->
         Out_channel.output_string channel contents);
-    let permissions = (Unix.stat path).st_perm in
+    let permissions = source_stat.st_perm in
     Unix.chmod temporary_path permissions;
     Unix.rename temporary_path path;
     temporary := None;

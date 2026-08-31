@@ -78,6 +78,29 @@ let test_profiles_are_distinct () =
     "pedantic includes pedantic rules" true
     (Config.severity_for pedantic_cfg pedantic <> None)
 
+let test_default_profile_requires_actionable_findings () =
+  let default_cfg = Config.default in
+  let idiomatic_cfg = Config.with_profile Config.Profile_idiomatic Config.default in
+  let pedantic_cfg = Config.with_profile Config.Profile_pedantic Config.default in
+  let physical_lookup =
+    Option.get (Lintocaml_rules.Registry.find "physical-assoc-lookup")
+  in
+  let mutable_key = Option.get (Lintocaml_rules.Registry.find "mutable-hashtable-key") in
+  let extractor = Option.get (Lintocaml_rules.Registry.find "discarding-extractor") in
+  Alcotest.(check bool)
+    "an explicitly physical lookup is opt-in" true
+    (Config.severity_for default_cfg physical_lookup = None);
+  Alcotest.(check bool)
+    "physical lookup is available in idiomatic" true
+    (Config.severity_for idiomatic_cfg physical_lookup = Some Severity.Hint);
+  Alcotest.(check bool)
+    "a merely mutable key is pedantic" true
+    (Config.severity_for idiomatic_cfg mutable_key = None
+    && Config.severity_for pedantic_cfg mutable_key = Some Severity.Hint);
+  Alcotest.(check bool)
+    "a throwing result extractor is on by default" true
+    (Config.severity_for default_cfg extractor = Some Severity.Warning)
+
 let parse_config source =
   match Config.parse_string ~known_rule_ids:known source with
   | Ok cfg -> cfg
@@ -253,6 +276,12 @@ let test_rule_ids_unique () =
   in
   match dup ids with Some d -> Alcotest.failf "duplicate rule id %s" d | None -> ()
 
+let test_rule_ids_sorted () =
+  Alcotest.(check (list string))
+    "registry order is predictable"
+    (List.sort String.compare Lintocaml_rules.Registry.ids)
+    Lintocaml_rules.Registry.ids
+
 let test_glob_literal () =
   Alcotest.(check bool) "exact segment" true (Config.glob_matches "src/a.ml" "src/a.ml");
   Alcotest.(check bool) "different file" false (Config.glob_matches "src/a.ml" "src/b.ml");
@@ -352,6 +381,90 @@ let test_fix_source_wraps () =
     "compound is parenthesised" true
     (match wrapped with Rule.Parenthesized_source _ -> true | _ -> false)
 
+let remove_if_present path =
+  match Sys.remove path with () -> () | exception Sys_error _ -> ()
+
+let test_fix_refuses_symlink () =
+  let target = Filename.temp_file "lintocaml-test-" ".ml" in
+  let link = target ^ ".link" in
+  Fun.protect
+    ~finally:(fun () ->
+      remove_if_present link;
+      remove_if_present target)
+    (fun () ->
+      Out_channel.with_open_bin target (fun channel ->
+          Out_channel.output_string channel "old\n");
+      Unix.symlink target link;
+      let loc = { Loc.file = link; line = 1; col = 0; end_line = 1; end_col = 3 } in
+      let diagnostic =
+        Diagnostic.make ~rule_id:"test" ~severity:Severity.Warning ~loc ~message:"replace"
+          ~replacement:"new" ~expected_source:"old" ()
+      in
+      let result = Lintocaml_driver.Apply_fixes.run [ diagnostic ] in
+      Alcotest.(check int) "no edit applied" 0 result.applied;
+      Alcotest.(check bool) "the refusal is reported" true (result.errors <> []);
+      Alcotest.(check bool)
+        "the link remains a link" true
+        ((Unix.lstat link).st_kind = Unix.S_LNK);
+      Alcotest.(check string)
+        "the target is unchanged" "old\n"
+        (In_channel.with_open_bin target In_channel.input_all))
+
+let test_source_text_ranges () =
+  let source = Lintocaml_driver.Source_text.of_string "first\nsecond\n" in
+  let loc = { Loc.file = "source.ml"; line = 1; col = 1; end_line = 2; end_col = 3 } in
+  Alcotest.(check (option string))
+    "multiline slice" (Some "irst\nsec")
+    (Lintocaml_driver.Source_text.slice source loc);
+  let outside = { loc with line = 0 } in
+  Alcotest.(check (option string))
+    "invalid line is rejected" None
+    (Lintocaml_driver.Source_text.slice source outside);
+  let reversed = { loc with line = 2; col = 3; end_line = 1; end_col = 1 } in
+  Alcotest.(check (option string))
+    "reversed range is rejected" None
+    (Lintocaml_driver.Source_text.slice source reversed);
+  let overflowing = { loc with col = max_int; end_line = 1; end_col = max_int } in
+  Alcotest.(check (option string))
+    "overflowing column is rejected" None
+    (Lintocaml_driver.Source_text.slice source overflowing);
+  Alcotest.(check int) "one-based columns saturate" max_int (Loc.one_based_column max_int)
+
+let test_render_caps_malformed_location () =
+  let path = Filename.temp_file "lintocaml-render-" ".ml" in
+  Fun.protect
+    ~finally:(fun () -> remove_if_present path)
+    (fun () ->
+      Out_channel.with_open_bin path (fun channel ->
+          Out_channel.output_string channel "x\n");
+      let loc = { Loc.file = path; line = 1; col = 0; end_line = 1; end_col = max_int } in
+      let diagnostic =
+        Diagnostic.make ~rule_id:"test" ~severity:Severity.Warning ~loc
+          ~message:"malformed location" ()
+      in
+      let outcome =
+        {
+          Lintocaml_driver.Analyse.diagnostics = [ diagnostic ];
+          suppressed = [];
+          files_analysed = 1;
+          cmt_files_found = 1;
+          load_errors = [];
+        }
+      in
+      let previous = !Lintocaml_driver.Render_text.colour in
+      Fun.protect
+        ~finally:(fun () -> Lintocaml_driver.Render_text.colour := previous)
+        (fun () ->
+          Lintocaml_driver.Render_text.colour := false;
+          let rendered =
+            Format.asprintf "%a"
+              (Lintocaml_driver.Render_text.pp ~report_suppressed:false)
+              outcome
+          in
+          Alcotest.(check bool)
+            "caret allocation is bounded" true
+            (String.length rendered < 1_000)))
+
 (* The overlap guard itself runs in test/run_fixtures.sh, where the fixture
    build is guaranteed present;
    it is not a unit test because the fixture _build is cleaned concurrently by
@@ -378,6 +491,11 @@ let test_json_shape () =
   let json = Lintocaml_driver.Render_json.render ~report_suppressed:true outcome in
   let parsed = Yojson.Safe.from_string json in
   let member name = function `Assoc fields -> List.assoc_opt name fields | _ -> None in
+  let () =
+    match member "artifacts_found" parsed with
+    | Some (`Int 1) -> ()
+    | _ -> Alcotest.fail "JSON output is missing artifacts_found"
+  in
   let () =
     match member "rule_stats" parsed with
     | Some (`Assoc stats) -> (
@@ -406,6 +524,7 @@ let () =
             test_fix_needs_parentheses;
           Alcotest.test_case "source wraps compound expressions" `Quick
             test_fix_source_wraps;
+          Alcotest.test_case "refuses symbolic links" `Quick test_fix_refuses_symlink;
         ] );
       ( "glob",
         [
@@ -428,6 +547,8 @@ let () =
           Alcotest.test_case "default profile hides idiom rules" `Quick
             test_default_profile_hides_idiom_rules;
           Alcotest.test_case "profiles are distinct" `Quick test_profiles_are_distinct;
+          Alcotest.test_case "default findings are actionable" `Quick
+            test_default_profile_requires_actionable_findings;
           Alcotest.test_case "path override disables files" `Quick
             test_path_override_disables_matching_files;
           Alcotest.test_case "rule beats override profile" `Quick
@@ -454,6 +575,13 @@ let () =
         [
           Alcotest.test_case "all documented" `Quick test_all_rules_documented;
           Alcotest.test_case "ids unique" `Quick test_rule_ids_unique;
+          Alcotest.test_case "ids sorted" `Quick test_rule_ids_sorted;
+        ] );
+      ("source text", [ Alcotest.test_case "ranges" `Quick test_source_text_ranges ]);
+      ( "rendering",
+        [
+          Alcotest.test_case "malformed locations" `Quick
+            test_render_caps_malformed_location;
         ] );
       ("json", [ Alcotest.test_case "schema shape" `Quick test_json_shape ]);
     ]

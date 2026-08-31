@@ -8,7 +8,8 @@ same question and stops at the first match.
 
 The difference is not only allocation: on a list whose first element satisfies
 the predicate, `exists` inspects one element where the filter inspects all of
-them.|}
+them. This rewrite short-circuits, so keep the original traversal when later
+predicate effects are intentional.|}
 
 let is_filter expression =
   callee_is expression [ "Stdlib.List.filter"; "Stdlib.List.find_all" ]

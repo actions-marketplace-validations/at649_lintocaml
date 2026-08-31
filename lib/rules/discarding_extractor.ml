@@ -33,8 +33,8 @@ let rule : Rule.t =
     id = "discarding-extractor";
     title = "Extractor that raises and drops the error";
     category = Rule.Correctness;
-    profile = Rule.Idiomatic;
-    default_severity = Severity.Hint;
+    profile = Rule.Default;
+    default_severity = Severity.Warning;
     docs;
     check;
   }

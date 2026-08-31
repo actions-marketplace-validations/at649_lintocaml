@@ -7,9 +7,9 @@ let of_diagnostic (d : Diagnostic.t) =
       ("severity", `String (Severity.to_string d.severity));
       ("file", `String d.loc.file);
       ("line", `Int d.loc.line);
-      ("column", `Int (d.loc.col + 1));
+      ("column", `Int (Loc.one_based_column d.loc.col));
       ("end_line", `Int d.loc.end_line);
-      ("end_column", `Int (d.loc.end_col + 1));
+      ("end_column", `Int (Loc.one_based_column d.loc.end_col));
       ("message", `String d.message);
       ("suggestion", match d.suggestion with Some s -> `String s | None -> `Null);
       ("replacement", match d.replacement with Some s -> `String s | None -> `Null);
@@ -21,7 +21,7 @@ let of_suppressed (suppressed : Analyse.suppressed) =
       ("rule", `String suppressed.rule_id);
       ("file", `String suppressed.loc.file);
       ("line", `Int suppressed.loc.line);
-      ("column", `Int (suppressed.loc.col + 1));
+      ("column", `Int (Loc.one_based_column suppressed.loc.col));
       ( "reason",
         match suppressed.reason with Some reason -> `String reason | None -> `Null );
     ]
@@ -76,6 +76,7 @@ let render ~report_suppressed (o : Analyse.outcome) =
     [
       ("schema_version", `String "1");
       ("files_analysed", `Int o.files_analysed);
+      ("artifacts_found", `Int o.cmt_files_found);
       ("diagnostics", `List (List.map of_diagnostic o.diagnostics));
       ("rule_stats", rule_stats o);
       ("load_errors", `List (List.map of_load_error o.load_errors));
@@ -86,4 +87,4 @@ let render ~report_suppressed (o : Analyse.outcome) =
       fields @ [ ("suppressed", `List (List.map of_suppressed o.suppressed)) ]
     else fields
   in
-  `Assoc fields |> Yojson.Safe.pretty_to_string
+  `Assoc fields |> Yojson.Safe.pretty_to_string |> fun json -> json ^ "\n"

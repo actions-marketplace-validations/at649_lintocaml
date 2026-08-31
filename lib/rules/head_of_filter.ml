@@ -8,7 +8,9 @@ allocates nothing.
 
 On a list where an early element matches, the difference is the whole traversal.
 `List.find` raises `Not_found` where `List.hd` raises `Failure`, so if the empty
-case matters use `List.find_opt`, which is what most callers want anyway.|}
+case matters use `List.find_opt`, which is what most callers want anyway. Both
+alternatives stop early; retain the filter when effects on later elements are
+part of the behavior.|}
 
 let heads = [ "Stdlib.List.hd" ]
 let filters = [ "Stdlib.List.filter"; "Stdlib.List.find_all" ]

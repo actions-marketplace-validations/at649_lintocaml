@@ -8,4 +8,7 @@ let compare a b =
         (b.line, b.col, b.end_line, b.end_col)
   | ordering -> ordering
 
-let pp ppf t = Fmt.pf ppf "%s:%d:%d" t.file t.line (t.col + 1)
+let one_based_column column =
+  if column < 0 then 1 else if column = max_int then max_int else column + 1
+
+let pp ppf t = Fmt.pf ppf "%s:%d:%d" t.file t.line (one_based_column t.col)

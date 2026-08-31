@@ -23,8 +23,7 @@ let compare_suppressed left right =
    .cmt's own directory looking for the recorded filename. *)
 let resolve_source ~cmt_path filename =
   if filename = "" then None
-  else if Sys.file_exists filename then Some filename
-  else
+  else if Filename.is_relative filename then
     let rec collect dir depth candidates =
       if depth = 0 then candidates
       else
@@ -53,7 +52,12 @@ let resolve_source ~cmt_path filename =
     in
     match List.find_opt outside_build candidates with
     | Some _ as source -> source
-    | None -> ( match candidates with source :: _ -> Some source | [] -> None)
+    | None -> (
+        match candidates with
+        | source :: _ -> Some source
+        | [] -> if Sys.file_exists filename then Some filename else None)
+  else if Sys.file_exists filename then Some filename
+  else None
 
 let analyse_cmt ~cfg ~rules path =
   match Tast_iface.load_cmt path with

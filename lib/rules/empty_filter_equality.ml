@@ -9,7 +9,8 @@ allocation is thrown away immediately.
 `not (List.exists predicate list)` answers the same question and stops at the
 first match; for `<> []` drop the negation. The rule matches resolved
 standard-library filter calls only, and requires the empty list to be the other
-operand so ordinary filter uses are not reported.|}
+operand so ordinary filter uses are not reported. `List.exists` short-circuits,
+so keep the filter when effects on later elements are intentional.|}
 
 let filter_functions = [ "Stdlib.List.filter"; "Stdlib.List.find_all" ]
 
@@ -26,8 +27,8 @@ let check (expression : Expr_view.t) =
             || (is_construct "[]" left && is_filter right)) ->
       let suggestion =
         if path_is operator [ "Stdlib.=" ] then
-          "not (List.exists predicate list) tests absence without allocating"
-        else "List.exists predicate list tests presence without allocating"
+          "use not (List.exists predicate list) when short-circuiting is acceptable"
+        else "use List.exists predicate list when short-circuiting is acceptable"
       in
       [
         Rule.finding ~loc:expression.loc ~suggestion

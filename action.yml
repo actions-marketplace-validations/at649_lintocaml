@@ -24,16 +24,43 @@ inputs:
     required: false
     default: "true"
   upload-sarif:
-    description: "Upload results to GitHub code scanning. Requires security-events: write."
+    description: "Upload results to GitHub code scanning. Requires security-events: write and code scanning access."
     required: false
     default: "true"
 
 runs:
   using: "composite"
   steps:
+    - name: Validate inputs
+      shell: bash
+      env:
+        LINTOCAML_PROFILE: ${{ inputs.profile }}
+        LINTOCAML_FAIL_ON: ${{ inputs.fail-on }}
+        LINTOCAML_BUILD: ${{ inputs.build }}
+        LINTOCAML_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+      run: |
+        set -euo pipefail
+        case "$LINTOCAML_PROFILE" in
+          default|idiomatic|pedantic) ;;
+          *) echo "lintocaml: invalid profile input: $LINTOCAML_PROFILE" >&2; exit 2 ;;
+        esac
+        case "$LINTOCAML_FAIL_ON" in
+          error|warning|hint|never) ;;
+          *) echo "lintocaml: invalid fail-on input: $LINTOCAML_FAIL_ON" >&2; exit 2 ;;
+        esac
+        case "$LINTOCAML_BUILD" in
+          true|false) ;;
+          *) echo "lintocaml: build must be true or false" >&2; exit 2 ;;
+        esac
+        case "$LINTOCAML_UPLOAD_SARIF" in
+          true|false) ;;
+          *) echo "lintocaml: upload-sarif must be true or false" >&2; exit 2 ;;
+        esac
+
     - name: Install lintocaml
       shell: bash
       run: |
+        set -euo pipefail
         opam pin add --no-action --yes lintocaml "$GITHUB_ACTION_PATH"
         opam install --yes lintocaml
 
@@ -49,7 +76,9 @@ runs:
         LINTOCAML_PATHS: ${{ inputs.paths }}
         LINTOCAML_PROFILE: ${{ inputs.profile }}
         LINTOCAML_FAIL_ON: ${{ inputs.fail-on }}
+        LINTOCAML_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
       run: |
+        # Preserve linter exit codes so SARIF can upload before the action fails.
         set -uo pipefail
         paths=()
         while IFS= read -r path; do
@@ -63,19 +92,30 @@ runs:
           exit 2
         fi
 
-        opam exec -- lintocaml --no-color --format sarif --fail-on never \
-          --profile "$LINTOCAML_PROFILE" -- "${paths[@]}" > lintocaml.sarif
+        sarif_status=0
+        if [[ "$LINTOCAML_UPLOAD_SARIF" == true ]]; then
+          sarif_path="$RUNNER_TEMP/lintocaml.sarif"
+          opam exec -- lintocaml --no-color --format sarif --fail-on never \
+            --profile "$LINTOCAML_PROFILE" -- "${paths[@]}" > "$sarif_path" \
+            || sarif_status=$?
+          if [[ $sarif_status -eq 0 ]]; then
+            echo "sarif=$sarif_path" >> "$GITHUB_OUTPUT"
+          fi
+        fi
 
         status=0
         opam exec -- lintocaml --no-color --fail-on "$LINTOCAML_FAIL_ON" \
           --profile "$LINTOCAML_PROFILE" -- "${paths[@]}" || status=$?
+        if [[ $sarif_status -ne 0 ]]; then
+          status=$sarif_status
+        fi
         echo "status=$status" >> "$GITHUB_OUTPUT"
 
     - name: Upload SARIF
-      if: always() && inputs.upload-sarif == 'true' && hashFiles('lintocaml.sarif') != ''
+      if: always() && inputs.upload-sarif == 'true' && steps.lint.outputs.sarif != ''
       uses: github/codeql-action/upload-sarif@v4
       with:
-        sarif_file: lintocaml.sarif
+        sarif_file: ${{ steps.lint.outputs.sarif }}
 
     - name: Fail the job when findings exceed the threshold
       if: always() && steps.lint.outputs.status != '' && steps.lint.outputs.status != '0'

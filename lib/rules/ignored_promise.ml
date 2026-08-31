@@ -2,9 +2,9 @@ open Lintocaml_engine
 open Expr_view
 
 let docs =
-  {|Discarding an `Lwt.t` or `Eio.Promise.t` value drops the only handle to an
-asynchronous computation. Depending on the library and call, the work may never
-run, its failure may go unobserved, or cancellation may no longer be propagated.
+  {|Discarding an `Lwt.t` or `Eio.Promise.t` value drops the caller's handle to
+an asynchronous computation. Depending on the library and call, failures may go
+unobserved and cancellation or structured-concurrency guarantees may be lost.
 
 Await the computation or attach it to an explicit supervisor. This rule checks
 only known promise type names and explicit `ignore` or `let _ =` sites.|}
@@ -25,7 +25,7 @@ let check e =
       [
         Rule.finding ~loc:e.loc
           ~suggestion:"await the promise or attach it to an explicit supervisor"
-          "a promise is explicitly discarded, so its work or failure can be lost";
+          "a promise is explicitly discarded, so its failure or cancellation can be lost";
       ]
   | _ -> []
 

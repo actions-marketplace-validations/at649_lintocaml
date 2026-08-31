@@ -54,6 +54,7 @@ let all : Rule.t list =
     Head_of_filter.rule;
     Trivial_sprintf.rule;
   ]
+  |> List.sort (fun (left : Rule.t) right -> String.compare left.id right.id)
 
 let ids = List.map (fun (r : Rule.t) -> r.Rule.id) all
 let find id = List.find_opt (fun (r : Rule.t) -> String.equal r.Rule.id id) all

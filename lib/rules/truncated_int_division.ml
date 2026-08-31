@@ -5,8 +5,9 @@ let docs =
   {|`float_of_int (a / b)` performs the division on integers first, truncating
 toward zero, and only then converts. `float_of_int (7 / 2)` is `3.`, not `3.5`.
 
-The rounding is silent and survives testing whenever the sample inputs happen to
-divide evenly, which is why this tends to reach production.
+The rounding is silent and easy to miss when test inputs divide evenly. In some
+programs the truncation is intentional, so this check is advice rather than
+proof of a defect.
 
 Convert first and divide in floating point: `float_of_int a /. float_of_int b`.|}
 
@@ -29,8 +30,8 @@ let rule : Rule.t =
     id = "truncated-int-division";
     title = "Integer division converted to float";
     category = Rule.Correctness;
-    profile = Rule.Default;
-    default_severity = Severity.Error;
+    profile = Rule.Idiomatic;
+    default_severity = Severity.Hint;
     docs;
     check;
   }

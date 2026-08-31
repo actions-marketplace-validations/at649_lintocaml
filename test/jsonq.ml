@@ -152,6 +152,18 @@ let () =
              results)
       then die "a result references a rule with no metadata";
       if results = [] then die "SARIF carried no results";
+      let first_region =
+        match results with
+        | first :: _ -> (
+            match list_of (field "locations" first) with
+            | location :: _ -> field "region" (field "physicalLocation" location)
+            | [] -> `Null)
+        | [] -> `Null
+      in
+      if int_of (field "endLine" first_region) = min_int then
+        die "a SARIF result omitted endLine";
+      if int_of (field "endColumn" first_region) = min_int then
+        die "a SARIF result omitted endColumn";
       check
         (List.exists (fun r -> list_of (field "fixes" r) <> []) results)
         "no SARIF result carried a fix"

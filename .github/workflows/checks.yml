@@ -18,17 +18,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: "5.2.x"
-      - run: opam install . --deps-only --with-test --with-dev-setup
+      - run: opam install . --deps-only --with-test --with-dev-setup --with-doc
+      - run: opam lint lintocaml.opam
       - run: opam exec -- dune build @fmt
+      - run: opam exec -- dune build @doc
       - name: lintocaml must be clean on its own source
         run: |
           opam exec -- dune build @check
           opam exec -- dune exec -- lintocaml --no-color --fail-on hint \
             _build/default/lib _build/default/bin
+
+  action-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5.5.x"
+      - name: Install and run the local composite action
+        uses: ./
+        with:
+          paths: |
+            _build/default/lib
+            _build/default/bin
+          profile: pedantic
+          fail-on: hint
+          upload-sarif: "false"
 
   test:
     strategy:
@@ -41,7 +61,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml }}
