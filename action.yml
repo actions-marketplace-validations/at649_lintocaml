@@ -57,19 +57,30 @@ runs:
           *) echo "lintocaml: upload-sarif must be true or false" >&2; exit 2 ;;
         esac
 
-    - name: Install lintocaml
+    - name: Pin lintocaml
       shell: bash
       run: |
         set -euo pipefail
         opam pin add --no-action --yes lintocaml "$GITHUB_ACTION_PATH"
-        opam install --yes lintocaml
 
-    - name: Install project dependencies and build compiler artifacts
+    - name: Install project dependencies
       if: inputs.build == 'true'
       shell: bash
       run: |
         set -euo pipefail
         opam install . --deps-only --with-test --yes
+
+    - name: Install lintocaml
+      shell: bash
+      run: |
+        set -euo pipefail
+        opam install --yes lintocaml
+
+    - name: Build compiler artifacts
+      if: inputs.build == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
         opam exec -- dune build @check
 
     - name: Run lintocaml
