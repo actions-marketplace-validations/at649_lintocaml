@@ -20,7 +20,7 @@ inputs:
     required: false
     default: "error"
   build:
-    description: "Run 'dune build @check' before linting. Disable if the workflow already built the project."
+    description: "Install project dependencies and run 'dune build @check'. Disable if the workflow already built the project."
     required: false
     default: "true"
   upload-sarif:
@@ -64,10 +64,13 @@ runs:
         opam pin add --no-action --yes lintocaml "$GITHUB_ACTION_PATH"
         opam install --yes lintocaml
 
-    - name: Build compiler artifacts
+    - name: Install project dependencies and build compiler artifacts
       if: inputs.build == 'true'
       shell: bash
-      run: opam exec -- dune build @check
+      run: |
+        set -euo pipefail
+        opam install . --deps-only --with-test --yes
+        opam exec -- dune build @check
 
     - name: Run lintocaml
       id: lint

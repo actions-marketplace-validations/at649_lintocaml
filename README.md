@@ -190,9 +190,12 @@ steps:
       fail-on: error
 ```
 
-The action installs lintocaml in the opam switch created by `setup-ocaml`, builds
-the project, and uploads SARIF so findings appear in code scanning. Set
-`upload-sarif: "false"` if the repository cannot grant `security-events: write`.
+With `build: true`, the action installs lintocaml and the project's test/build
+dependencies in the opam switch created by `setup-ocaml`, runs
+`dune build @check`, and uploads SARIF so findings appear in code scanning. Set
+`build: "false"` when an earlier workflow step already installed dependencies
+and built the project. Set `upload-sarif: "false"` if the repository cannot
+grant `security-events: write`.
 Private and internal repositories also need GitHub Code Security enabled.
 For several scan roots, put one path on each line:
 
